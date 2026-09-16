@@ -1,0 +1,12 @@
+preview/
+node_modules/
+.env
+.env.*
+*.log
+preview-link.txt
+prepare-font.cjs
+revise.cjs
+fix-refinement.cjs
+update-layout.cjs
+check*.cjs
+final-assets-check.cjs

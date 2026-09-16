@@ -1,0 +1,183 @@
+[
+  {
+    "product": "101 роза Эквадор",
+    "expected": 1,
+    "available": 1,
+    "images": [
+      "assets/products/ecuador-101-1.jpg"
+    ]
+  },
+  {
+    "product": "Французские розы с эвкалиптом",
+    "expected": 1,
+    "available": 1,
+    "images": [
+      "assets/products/french-eucalyptus-1.jpg"
+    ]
+  },
+  {
+    "product": "Букет с диантусами и хризантемой",
+    "expected": 1,
+    "available": 1,
+    "images": [
+      "assets/products/dianthus-1.jpg"
+    ]
+  },
+  {
+    "product": "Подсолнухи с эвкалиптом",
+    "expected": 1,
+    "available": 1,
+    "images": [
+      "assets/products/sunflowers-1.jpg"
+    ]
+  },
+  {
+    "product": "Свадебный букет из эустомы",
+    "expected": 2,
+    "available": 2,
+    "images": [
+      "assets/products/bridal-eustoma-1.jpg",
+      "assets/products/bridal-eustoma-2.jpg"
+    ]
+  },
+  {
+    "product": "101 роза Кения",
+    "expected": 2,
+    "available": 2,
+    "images": [
+      "assets/products/kenya-101-1.jpg",
+      "assets/products/kenya-101-2.jpg"
+    ]
+  },
+  {
+    "product": "Букет из 15 кустовых роз",
+    "expected": 3,
+    "available": 3,
+    "images": [
+      "assets/products/spray-15-1.jpg",
+      "assets/products/spray-15-2.jpg",
+      "assets/products/spray-15-3.jpg"
+    ]
+  },
+  {
+    "product": "Букет из гипсофилы",
+    "expected": 1,
+    "available": 1,
+    "images": [
+      "assets/products/gypsophila-9-1.jpg"
+    ]
+  },
+  {
+    "product": "Композиция с эустомой",
+    "expected": 2,
+    "available": 2,
+    "images": [
+      "assets/products/eustoma-composition-1.jpg",
+      "assets/products/eustoma-composition-2.jpg"
+    ]
+  },
+  {
+    "product": "Букет из 5 французских роз",
+    "expected": 3,
+    "available": 3,
+    "images": [
+      "assets/products/french-5-1.jpg",
+      "assets/products/french-5-2.jpg",
+      "assets/products/french-5-3.jpg"
+    ]
+  },
+  {
+    "product": "Букет невесты из гипсофилы",
+    "expected": 1,
+    "available": 1,
+    "images": [
+      "assets/products/bridal-gypsophila-1.jpg"
+    ]
+  },
+  {
+    "product": "Гортензии с эвкалиптом",
+    "expected": 2,
+    "available": 2,
+    "images": [
+      "assets/products/hydrangeas-1.jpg",
+      "assets/products/hydrangeas-2.jpg"
+    ]
+  },
+  {
+    "product": "Букет из 7 французских роз",
+    "expected": 3,
+    "available": 3,
+    "images": [
+      "assets/products/french-7-1.jpg",
+      "assets/products/french-7-2.jpg",
+      "assets/products/french-7-3.jpg"
+    ]
+  },
+  {
+    "product": "Розы и хризантемы",
+    "expected": 4,
+    "available": 3,
+    "images": [
+      "assets/products/roses-chrysanthemums-1.jpg",
+      "assets/products/roses-chrysanthemums-2.jpg",
+      "assets/products/roses-chrysanthemums-3.jpg"
+    ]
+  },
+  {
+    "product": "Букет из сирени",
+    "expected": 4,
+    "available": 2,
+    "images": [
+      "assets/products/lilac-1.jpg",
+      "assets/products/lilac-2.jpg"
+    ]
+  },
+  {
+    "product": "Композиция в сумочке Тиффани",
+    "expected": 4,
+    "available": 3,
+    "images": [
+      "assets/products/tiffany-1.jpg",
+      "assets/products/tiffany-2.jpg",
+      "assets/products/tiffany-3.jpg"
+    ]
+  },
+  {
+    "product": "Букет из альстромерий",
+    "expected": 2,
+    "available": 2,
+    "images": [
+      "assets/products/alstroemeria-1.jpg",
+      "assets/products/alstroemeria-2.jpg"
+    ]
+  },
+  {
+    "product": "51 кенийская роза",
+    "expected": 2,
+    "available": 2,
+    "images": [
+      "assets/products/kenya-51-1.jpg",
+      "assets/products/kenya-51-2.jpg"
+    ]
+  },
+  {
+    "product": "Композиция с розами в сумочке",
+    "expected": 4,
+    "available": 0,
+    "images": []
+  },
+  {
+    "product": "Корзина из 101 кенийской розы",
+    "expected": 4,
+    "available": 0,
+    "images": []
+  },
+  {
+    "product": "Композиция с ромашковой хризантемой",
+    "expected": 1,
+    "available": 1,
+    "images": [
+      "assets/products/daisy-handbag-1.jpg"
+    ]
+  }
+]
