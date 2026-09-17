@@ -27,3 +27,19 @@ viewer.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'){e.preventDefault()
 viewer.addEventListener('close',()=>{document.body.style.overflow=previousOverflow;zoomFocus?.focus()});
 document.addEventListener('click',e=>{const button=e.target.closest('.live-photo .product-photo-button');if(!button)return;e.preventDefault();e.stopImmediatePropagation();const frame=button.closest('.live-photo');zoomProduct=catalog.find(p=>p.id===frame.dataset.photoProduct);zoomIndex=Number(frame.dataset.photoIndex);zoomFocus=button;previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';drawZoom();viewer.showModal()},true);
 polishPhotos();
+
+// Show the real daily selection when the shop supplies its current entries.
+if(window.DAILY_BOUQUETS?.length){
+ const daily=document.createElement('div');daily.className='product-grid daily-bouquets';
+ daily.innerHTML=window.DAILY_BOUQUETS.slice(0,3).map(p=>card(p)).join('');
+ $('#offers .offer')?.remove();$('#offers').append(daily);polishPhotos();
+}
+// Keep a short, visible press response on touch screens without sticky hover.
+const pressTargets='.primary,.outline,.toast-go,.offer,.direction,.carousel-arrow:not(:disabled),.product-card,.plain-action,.text-button,.socials button,#favoritesButton,#cartButton,.heart,.topbar nav a,.faq-layout summary,.categories button,#decorChips button,.audio-card,.quiz-banner';
+document.addEventListener('pointerdown',e=>{
+ if(e.pointerType==='mouse')return;
+ const target=e.target.closest(pressTargets);if(!target)return;
+ target.classList.add('is-pressed');
+ const end=()=>{setTimeout(()=>target.classList.remove('is-pressed'),220);document.removeEventListener('pointerup',end);document.removeEventListener('pointercancel',end)};
+ document.addEventListener('pointerup',end,{once:true});document.addEventListener('pointercancel',end,{once:true});
+},{passive:true});
