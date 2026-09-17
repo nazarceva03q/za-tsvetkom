@@ -6,14 +6,14 @@ const storage={get(k,d){try{return JSON.parse(localStorage.getItem('zt:'+k))??d}
 const catalog=[...window.FLOWER_PRODUCTS,...(window.DAILY_BOUQUETS||[]).slice(0,3)];
 const balloonProducts=[];
 const allProducts=[...catalog,...balloonProducts];
-const balloonCategories=['Букеты из шаров','Для бизнеса','Для девушек','День рождения','Юбилей','14 февраля','Девичник','Новый год','Выпускной','Последний звонок','Для девочек','Для мальчиков','Гендер пати','Коробка с шарами','Годовасия','Для мужчин','Фольгированные цифры','Фольгированные сердца'];
+const balloonCategories=['Букеты из шаров','Для бизнеса','Для девушек','14 февраля','Девичник','Новый год','Последний звонок','Для девочек','Для мальчиков','Гендер пати','Коробка с шарами','Годовасия','Для мужчин'];
 const balloonGallery=Array.from({length:10},(_,i)=>({id:'balloon-demo-'+i,name:'Название',description:'Состав',price:500+i*100,stock:10,category:balloonCategories[0],tags:'шары'}));allProducts.push(...balloonGallery);
 let favorites=storage.get('favorites',[]),cart=storage.get('cart',{});if(!Array.isArray(favorites))favorites=[];favorites=favorites.filter(id=>allProducts.some(p=>p.id===id));if(!cart||Array.isArray(cart)||typeof cart!=='object')cart={};for(const id of Object.keys(cart)){const p=allProducts.find(p=>p.id===id);if(!p||!Number.isInteger(cart[id])||cart[id]<=0)delete cart[id];else cart[id]=Math.min(cart[id],p.stock??99)}
 let priceMin=0,priceMax=Infinity;let filter='Все',budget=null,expanded=false,modalMode='',lastFocus=null,quizStep=0,quizAnswers={};
 const photo='<div class="photo"><span class="camera" aria-hidden="true"></span></div>';
 const flower='<span class="ticker-heart" aria-hidden="true">♥</span>';
 const ticker=['свежие цветы','букет дня – 999 ₽','фото букета перед отправкой','бесплатная доставка по Перми от 5 000 ₽'];$('#ticker').innerHTML=[...ticker,...ticker].map((t,i)=>`<span ${i>=ticker.length?'aria-hidden="true"':''}>${t}${flower}</span>`).join('');
-$('#directionGrid').innerHTML=['Цветы','Цветы + шары','Воздушные шары','Оформление для бизнеса'].map((x,i)=>`<button class="direction" ${i<2?`data-filter="${i===0?'Все':x}"`:`data-direction="${x}"`}>${photo}<span>${x}<b></b></span></button>`).join('');
+$('#directionGrid').innerHTML=['Цветы','Воздушные шары','Оформление для праздника','Оформление для бизнеса'].map((x,i)=>`<button class="direction" ${i===0?'data-filter="Все"':`data-balloon-link="${i===3?'Для бизнеса':'Все'}"`}>${photo}<span>${x}<b></b></span></button>`).join('');
 const categories=['Все','Букет дня','Розы','Сборные букеты','Монобукеты','Композиции','Свадебные букеты'];
 $('#categories').innerHTML=categories.map(c=>`<button data-filter="${c}" class="${c==='Все'?'active':''}">${c==='Композиции от 500 ₽'?'Композиции от 500 ₽':c}</button>`).join('');
 const menu={ 'Подарки':['Все','Цветы + шары','Воздушные шары','Оформление праздника'],'Кому':['Маме','Любимой','Подруге','Коллеге','Учителю','Невесте'],'Повод':['День рождения','Годовщина','Свадьба','Юбилей','Спасибо','Просто так'],'Букеты':categories.slice(1),'Дополнения':['Шары','Открытка','Аудио-послание','Подарочный сертификат']};

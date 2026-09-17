@@ -120,3 +120,21 @@
 .logo-space{background:var(--ink,#2C2D4C)!important;-webkit-mask:url('logo.png') center/contain no-repeat;mask:url('logo.png') center/contain no-repeat}.logo-space img{opacity:0}
 .balloon-empty{grid-column:1/-1;padding:24px;text-align:center}
 .holiday .holiday-order{font-size:14px;white-space:nowrap}
+
+/* Consistent type roles: body/actions 16px, supporting text 14px, cards 20px. */
+.primary,.outline,.price-filter button{font-size:var(--type-body);line-height:1.4}
+.holiday .holiday-order{font-size:var(--type-small)}
+.budget-row .primary{border-color:transparent}
+.product-card,.product-card:hover,.product-card:active,.product-card.is-pressed{box-shadow:0 0 25px 7px #819ae078,0 0 48px 13px #819ae048!important}
+.price-filter [role=status]{grid-column:1/-1;flex-basis:100%;font-size:var(--type-small)}
+#clearPrice,#clearBalloonPrice{filter:none!important;text-shadow:none!important}
+#clearPrice:is(:hover,:active,:focus-visible,.is-pressed),#clearBalloonPrice:is(:hover,:active,:focus-visible,.is-pressed){box-shadow:var(--action-shadow)!important}
+.offer:is(:hover,:active,.is-pressed){box-shadow:var(--action-shadow)!important}
+.footer-bottom{align-items:center;gap:16px 25px;flex-wrap:wrap}
+.footer-bottom>span,.footer-bottom>a,.footer-bottom>button{display:inline-flex;align-items:center;min-height:30px;font-size:var(--type-small);line-height:1.5;margin:0;padding:0}
+.footer-bottom>span{gap:4px}
+footer a:not(.logo-space),.footer-bottom button{transition:text-shadow .15s}
+footer a:not(.logo-space):is(:hover,:active,:focus-visible,.is-pressed),.footer-bottom button:is(:hover,:active,:focus-visible,.is-pressed),#mobileNavigation a:is(:hover,:active,.is-pressed){text-shadow:0 0 7px #819ae0,0 0 14px #819ae0}
+footer address,footer address+p{filter:none;text-shadow:none;box-shadow:none}
+@media(min-width:901px){.navrow{gap:22px}.navrow>.search{flex:1;margin:0}}
+@media(max-width:540px){.topbar>.outline{font-size:12px}}

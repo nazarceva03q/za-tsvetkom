@@ -30,7 +30,7 @@ document.addEventListener('click',e=>{const button=e.target.closest('[data-photo
 polishPhotos();
 
 const headerBurger=$('#headerBurger'),mobileNavigation=$('#mobileNavigation');
-mobileNavigation.innerHTML=$('.topbar nav').innerHTML+[['Шары','#balloons'],['Праздники','#holidays']].map(([name,href])=>`<a href="${href}">${name}</a>`).join('');
+mobileNavigation.innerHTML=Array.from($('.topbar nav').querySelectorAll('a')).map(a=>`<a href="${a.getAttribute('href')}">${a.textContent==='Адрес'?'Адрес и время работы':a.textContent}</a>`).join('')+[['Шары','#balloons'],['Праздники','#holidays']].map(([name,href])=>`<a href="${href}">${name}</a>`).join('');
 function closeMobileMenu(returnFocus=false){mobileNavigation.hidden=true;headerBurger.setAttribute('aria-expanded','false');headerBurger.setAttribute('aria-label','Открыть меню');if(returnFocus)headerBurger.focus()}
 headerBurger.onclick=()=>{const opening=mobileNavigation.hidden;closeMenu();mobileNavigation.hidden=!opening;headerBurger.setAttribute('aria-expanded',String(opening));headerBurger.setAttribute('aria-label',opening?'Закрыть меню':'Открыть меню');if(opening)mobileNavigation.querySelector('a').focus()};
 mobileNavigation.addEventListener('click',e=>{if(e.target.closest('a'))closeMobileMenu()});
@@ -44,8 +44,18 @@ $('#search').addEventListener('input',updateSearchAction);
 searchAction.onclick=()=>{if($('#search').value){$('#search').value='';$('#search').dispatchEvent(new Event('input',{bubbles:true}));$('#search').focus()}else $('#catalog').scrollIntoView({behavior:'smooth'})};
 const searchRender=render;render=function(){searchRender();updateSearchAction()};updateSearchAction();
 
+// Independent price range for balloons; preserve the flower catalogue filter.
+const balloonPriceForm=$('#priceFilter').cloneNode(true);
+balloonPriceForm.id='balloonPriceFilter';
+const balloonIds={priceFrom:'balloonPriceFrom',priceTo:'balloonPriceTo',clearPrice:'clearBalloonPrice',priceError:'balloonPriceError'};
+balloonPriceForm.querySelectorAll('[id]').forEach(el=>el.id=balloonIds[el.id]);
+balloonPriceForm.querySelectorAll('input').forEach(el=>el.value='');
+$('#balloonChips').after(balloonPriceForm);
+balloonPriceForm.onsubmit=e=>{e.preventDefault();const min=Number($('#balloonPriceFrom').value||0),max=$('#balloonPriceTo').value===''?Infinity:Number($('#balloonPriceTo').value);if(min<0||max<0||min>max){$('#balloonPriceError').textContent='Сумма «От» должна быть не больше суммы «До».';$('#balloonPriceFrom').focus();return}$('#balloonPriceError').textContent='';balloonPriceMin=min;balloonPriceMax=max;balloonExpanded=false;renderBalloonCatalog()};
+$('#clearBalloonPrice').onclick=()=>{balloonPriceMin=0;balloonPriceMax=Infinity;balloonPriceForm.querySelectorAll('input').forEach(el=>el.value='');$('#balloonPriceError').textContent='';balloonExpanded=false;renderBalloonCatalog()};
+
 // Keep a short, visible press response on touch screens without sticky hover.
-const pressTargets='.primary,.outline,.toast-go,.offer,.direction,.carousel-arrow:not(:disabled),.product-card,.plain-action,.text-button,.socials button,#favoritesButton,#cartButton,.heart,.topbar nav a,.faq-layout summary,.categories button,#decorChips button,.audio-card,.quiz-banner';
+const pressTargets='footer a:not(.logo-space),.footer-bottom button,#mobileNavigation a,#balloonChips button,.primary,.outline,.toast-go,.offer,.direction,.carousel-arrow:not(:disabled),.product-card,.plain-action,.text-button,.socials button,#favoritesButton,#cartButton,.heart,.topbar nav a,.faq-layout summary,.categories button,#decorChips button,.audio-card,.quiz-banner';
 document.addEventListener('pointerdown',e=>{
  if(e.pointerType==='mouse')return;
  const target=e.target.closest(pressTargets);if(!target)return;
@@ -55,4 +65,4 @@ document.addEventListener('pointerdown',e=>{
 },{passive:true});
 
 // Footer category shortcut uses the same filter as the balloon tabs.
-document.addEventListener('click',e=>{const link=e.target.closest('[data-balloon-link]');if(link){balloonFilter=link.dataset.balloonLink;balloonExpanded=false;renderBalloonCatalog()}});
+document.addEventListener('click',e=>{const link=e.target.closest('[data-balloon-link]');if(link){balloonFilter=link.dataset.balloonLink;balloonExpanded=false;renderBalloonCatalog();$('#balloons').scrollIntoView({behavior:'smooth'})}});
