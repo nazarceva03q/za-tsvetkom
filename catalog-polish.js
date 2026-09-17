@@ -13,27 +13,37 @@ for(const [name,body,url] of [['Валерия','Отличный магазин
 const example=$('#reviewTrack article').cloneNode(true);const h=example.querySelector('h3');h.textContent=name;if(url){const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener';a.textContent=name;h.replaceChildren(a)}example.querySelector('p').textContent=body;$('#reviewTrack').append(example)}
 updateCarousel('reviewTrack');
 $('#loadMap')?.click();
-const viewer=document.createElement('dialog');viewer.id='photoViewer';viewer.setAttribute('aria-label','Просмотр фотографии');viewer.innerHTML='<button class="close" aria-label="Закрыть фотографию">×</button><div class="zoom-stage"><img alt=""></div><button class="photo-arrow zoom-prev" aria-label="Предыдущее фото"></button><button class="photo-arrow zoom-next" aria-label="Следующее фото"></button><div class="zoom-tools"><button class="outline zoom-toggle">Увеличить</button><a class="outline zoom-original" target="_blank" rel="noopener">Открыть оригинал</a><span aria-live="polite"></span></div>';document.body.append(viewer);
+decorateActions();
+const viewer=document.createElement('dialog');viewer.id='photoViewer';viewer.setAttribute('aria-label','Просмотр фотографии');
+viewer.innerHTML='<button class="close" aria-label="Закрыть фотографию">×</button><div class="zoom-stage"><img alt=""></div><button class="photo-arrow zoom-prev" aria-label="Предыдущее фото"></button><button class="photo-arrow zoom-next" aria-label="Следующее фото"></button>';
+document.body.append(viewer);
 let zoomProduct,zoomIndex=0,zoomFocus,previousOverflow;
-function drawZoom(){const src=zoomProduct.images[zoomIndex],img=viewer.querySelector('img');img.src=src;img.alt=zoomProduct.name+' – фото '+(zoomIndex+1);viewer.querySelector('.zoom-original').href=src;viewer.querySelector('.zoom-tools span').textContent=(zoomIndex+1)+' / '+zoomProduct.images.length;viewer.querySelectorAll('.photo-arrow').forEach(b=>b.hidden=zoomProduct.images.length<2);viewer.classList.remove('enlarged');viewer.querySelector('.zoom-toggle').textContent='Увеличить'}
+function drawZoom(){const img=viewer.querySelector('img');img.src=zoomProduct.images[zoomIndex];img.alt=zoomProduct.name+' – фото '+(zoomIndex+1);viewer.querySelectorAll('.photo-arrow').forEach(b=>b.hidden=zoomProduct.images.length<2)}
 function moveZoom(delta){zoomIndex=(zoomIndex+delta+zoomProduct.images.length)%zoomProduct.images.length;drawZoom()}
 viewer.querySelector('.zoom-prev').innerHTML=chevron(-1);viewer.querySelector('.zoom-next').innerHTML=chevron(1);
 viewer.querySelector('.zoom-prev').onclick=()=>moveZoom(-1);viewer.querySelector('.zoom-next').onclick=()=>moveZoom(1);
 viewer.querySelector('.close').onclick=()=>viewer.close();
-viewer.querySelector('.zoom-toggle').onclick=()=>{const large=viewer.classList.toggle('enlarged');viewer.querySelector('.zoom-toggle').textContent=large?'Уменьшить':'Увеличить'};
-viewer.querySelector('img').onclick=()=>viewer.querySelector('.zoom-toggle').click();
-viewer.addEventListener('click',e=>{if(e.target===viewer)viewer.close()});
+viewer.addEventListener('click',e=>{if(e.target===viewer||e.target.classList.contains('zoom-stage'))viewer.close()});
 viewer.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'){e.preventDefault();moveZoom(-1)}if(e.key==='ArrowRight'){e.preventDefault();moveZoom(1)}e.stopPropagation()});
 viewer.addEventListener('close',()=>{document.body.style.overflow=previousOverflow;zoomFocus?.focus()});
-document.addEventListener('click',e=>{const button=e.target.closest('.live-photo .product-photo-button');if(!button)return;e.preventDefault();e.stopImmediatePropagation();const frame=button.closest('.live-photo');zoomProduct=catalog.find(p=>p.id===frame.dataset.photoProduct);zoomIndex=Number(frame.dataset.photoIndex);zoomFocus=button;previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';drawZoom();viewer.showModal()},true);
+document.addEventListener('click',e=>{const button=e.target.closest('[data-photo-view]');if(!button)return;e.preventDefault();e.stopImmediatePropagation();const frame=button.closest('.live-photo');zoomProduct=catalog.find(p=>p.id===frame.dataset.photoProduct);if(!zoomProduct?.images.length)return;zoomIndex=Number(frame.dataset.photoIndex);zoomFocus=button;previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';drawZoom();viewer.showModal()},true);
 polishPhotos();
 
-// Show the real daily selection when the shop supplies its current entries.
-if(window.DAILY_BOUQUETS?.length){
- const daily=document.createElement('div');daily.className='product-grid daily-bouquets';
- daily.innerHTML=window.DAILY_BOUQUETS.slice(0,3).map(p=>card(p)).join('');
- $('#offers .offer')?.remove();$('#offers').append(daily);polishPhotos();
-}
+const headerBurger=$('#headerBurger'),mobileNavigation=$('#mobileNavigation');
+mobileNavigation.innerHTML=$('.topbar nav').innerHTML+[['Шары','#balloons'],['Праздники','#holidays']].map(([name,href])=>`<a href="${href}">${name}</a>`).join('');
+function closeMobileMenu(returnFocus=false){mobileNavigation.hidden=true;headerBurger.setAttribute('aria-expanded','false');headerBurger.setAttribute('aria-label','Открыть меню');if(returnFocus)headerBurger.focus()}
+headerBurger.onclick=()=>{const opening=mobileNavigation.hidden;closeMenu();mobileNavigation.hidden=!opening;headerBurger.setAttribute('aria-expanded',String(opening));headerBurger.setAttribute('aria-label',opening?'Закрыть меню':'Открыть меню');if(opening)mobileNavigation.querySelector('a').focus()};
+mobileNavigation.addEventListener('click',e=>{if(e.target.closest('a'))closeMobileMenu()});
+document.addEventListener('click',e=>{if(!e.target.closest('#mobileNavigation,#headerBurger'))closeMobileMenu()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!mobileNavigation.hidden){e.preventDefault();closeMobileMenu(true)}});
+matchMedia('(max-width:1100px)').addEventListener('change',()=>closeMobileMenu());
+
+const searchAction=$('#searchAction');
+function updateSearchAction(){const filled=$('#search').value.length>0;searchAction.innerHTML=filled?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 5 14 14M19 5 5 19"/></svg>':magnifier;searchAction.setAttribute('aria-label',filled?'Очистить поиск':'Перейти к результатам поиска')}
+$('#search').addEventListener('input',updateSearchAction);
+searchAction.onclick=()=>{if($('#search').value){$('#search').value='';$('#search').dispatchEvent(new Event('input',{bubbles:true}));$('#search').focus()}else $('#catalog').scrollIntoView({behavior:'smooth'})};
+const searchRender=render;render=function(){searchRender();updateSearchAction()};updateSearchAction();
+
 // Keep a short, visible press response on touch screens without sticky hover.
 const pressTargets='.primary,.outline,.toast-go,.offer,.direction,.carousel-arrow:not(:disabled),.product-card,.plain-action,.text-button,.socials button,#favoritesButton,#cartButton,.heart,.topbar nav a,.faq-layout summary,.categories button,#decorChips button,.audio-card,.quiz-banner';
 document.addEventListener('pointerdown',e=>{
@@ -43,3 +53,6 @@ document.addEventListener('pointerdown',e=>{
  const end=()=>{setTimeout(()=>target.classList.remove('is-pressed'),220);document.removeEventListener('pointerup',end);document.removeEventListener('pointercancel',end)};
  document.addEventListener('pointerup',end,{once:true});document.addEventListener('pointercancel',end,{once:true});
 },{passive:true});
+
+// Footer category shortcut uses the same filter as the balloon tabs.
+document.addEventListener('click',e=>{const link=e.target.closest('[data-balloon-link]');if(link){balloonFilter=link.dataset.balloonLink;balloonExpanded=false;renderBalloonCatalog()}});
