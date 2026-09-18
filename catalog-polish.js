@@ -44,6 +44,35 @@ $('#search').addEventListener('input',updateSearchAction);
 searchAction.onclick=()=>{if($('#search').value){$('#search').value='';$('#search').dispatchEvent(new Event('input',{bubbles:true}));$('#search').focus()}else $('#catalog').scrollIntoView({behavior:'smooth'})};
 const searchRender=render;render=function(){searchRender();updateSearchAction()};updateSearchAction();
 
+function formatRussianPhone(value){
+ let digits=value.replace(/\D/g,'');
+ if(!digits)return '';
+ if(digits[0]==='8')digits='7'+digits.slice(1);
+ else if(digits[0]!=='7')digits='7'+digits;
+ digits=digits.slice(0,11);
+ const local=digits.slice(1);
+ return '+7'+(local.length?' ('+local.slice(0,3):'')+(local.length>=3?')':'')+(local.length>3?' '+local.slice(3,6):'')+(local.length>6?'-'+local.slice(6,8):'')+(local.length>8?'-'+local.slice(8,10):'');
+}
+const phoneForm=form;
+form=function(...args){
+ phoneForm(...args);
+ const input=$('#requestForm input[name="phone"]');if(!input)return;
+ input.inputMode='tel';input.maxLength=18;input.placeholder='+7 (999) 123-45-67';
+ input.pattern='[+]7 [(][0-9]{3}[)] [0-9]{3}-[0-9]{2}-[0-9]{2}';
+ input.addEventListener('beforeinput',event=>{
+  const caret=input.selectionStart;if(event.inputType!=='deleteContentBackward'||caret!==input.selectionEnd||!caret||/\d/.test(input.value[caret-1]))return;
+  let start=caret-1;while(start>0&&!/\d/.test(input.value[start]))start--;
+  event.preventDefault();input.value=input.value.slice(0,start)+input.value.slice(caret);input.setSelectionRange(start,start);input.dispatchEvent(new Event('input',{bubbles:true}));
+ });
+ input.addEventListener('input',()=>{
+  const old=input.value,position=input.selectionStart,digitPosition=old.slice(0,position).replace(/\D/g,'').length;
+  const prefixed=old.replace(/\D/g,'').length&&!/^[78]/.test(old.replace(/\D/g,''));
+  input.value=formatRussianPhone(old);
+  if(position<old.length){let count=0,caret=0;while(caret<input.value.length&&count<digitPosition+(prefixed?1:0)){if(/\d/.test(input.value[caret]))count++;caret++}input.setSelectionRange(caret,caret)}
+  input.setCustomValidity(input.value.replace(/\D/g,'').length===11?'':'Введите номер полностью: 11 цифр, начиная с 7');
+ });
+};
+
 // Independent price range for balloons; preserve the flower catalogue filter.
 const balloonPriceForm=$('#priceFilter').cloneNode(true);
 balloonPriceForm.id='balloonPriceFilter';

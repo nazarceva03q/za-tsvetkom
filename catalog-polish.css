@@ -124,7 +124,7 @@
 /* Consistent type roles: body/actions 16px, supporting text 14px, cards 20px. */
 .primary,.outline,.price-filter button{font-size:var(--type-body);line-height:1.4}
 .holiday .holiday-order{font-size:var(--type-small)}
-.budget-row .primary{border-color:transparent}
+#holidays .budget-row>.primary{border:0}
 .product-card,.product-card:hover,.product-card:active,.product-card.is-pressed{box-shadow:0 0 25px 7px #819ae078,0 0 48px 13px #819ae048!important}
 .price-filter [role=status]{grid-column:1/-1;flex-basis:100%;font-size:var(--type-small)}
 #clearPrice,#clearBalloonPrice{filter:none!important;text-shadow:none!important}
@@ -136,5 +136,16 @@
 footer a:not(.logo-space),.footer-bottom button{transition:text-shadow .15s}
 footer a:not(.logo-space):is(:hover,:active,:focus-visible,.is-pressed),.footer-bottom button:is(:hover,:active,:focus-visible,.is-pressed),#mobileNavigation a:is(:hover,:active,.is-pressed){text-shadow:0 0 7px #819ae0,0 0 14px #819ae0}
 footer address,footer address+p{filter:none;text-shadow:none;box-shadow:none}
-@media(min-width:901px){.navrow{gap:22px}.navrow>.search{flex:1;margin:0}}
+@media(min-width:901px){.navrow{gap:22px}.navrow>.search{flex:1;max-width:560px;margin-inline:auto}}
 @media(max-width:540px){.topbar>.outline{font-size:12px}}
+.offer .offer-cta{transition:box-shadow .18s}
+.offer:is(:hover,:active,:focus-visible,.is-pressed) .offer-cta{box-shadow:var(--action-shadow)}
+#certificate h2+p{margin-top:20px}
+.quiz-options+.form-note{margin-top:24px}
+.quiz-options button,.quiz-actions button{display:flex;align-items:center;justify-content:center;text-align:center}
+@media(max-width:900px){
+ .navrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:7px}
+ .navrow>#menuButton{min-width:0;white-space:normal}
+ .navrow>#favoritesButton,.navrow>#cartButton{margin:0;white-space:nowrap;padding-inline:3px;gap:4px}
+ .navrow>.search{grid-column:1/-1;width:100%;order:4}
+}
