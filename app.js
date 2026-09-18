@@ -7,7 +7,7 @@ const catalog=[...window.FLOWER_PRODUCTS,...(window.DAILY_BOUQUETS||[]).slice(0,
 const balloonProducts=[];
 const allProducts=[...catalog,...balloonProducts];
 const balloonCategories=['Букеты из шаров','Для бизнеса','Для девушек','14 февраля','Девичник','Новый год','Последний звонок','Для девочек','Для мальчиков','Гендер пати','Коробка с шарами','Годовасия','Для мужчин'];
-const balloonGallery=Array.from({length:10},(_,i)=>({id:'balloon-demo-'+i,name:'Название',description:'Состав',price:500+i*100,stock:10,category:balloonCategories[0],tags:'шары'}));allProducts.push(...balloonGallery);
+const balloonGallery=Array.from({length:10},(_,i)=>({id:'balloon-demo-'+i,name:'Название',description:'Состав',price:500+i*100,stock:10,category:balloonCategories[0],tags:'шары'})).concat(window.BUSINESS_BALLOONS||[]);allProducts.push(...balloonGallery);
 let favorites=storage.get('favorites',[]),cart=storage.get('cart',{});if(!Array.isArray(favorites))favorites=[];favorites=favorites.filter(id=>allProducts.some(p=>p.id===id));if(!cart||Array.isArray(cart)||typeof cart!=='object')cart={};for(const id of Object.keys(cart)){const p=allProducts.find(p=>p.id===id);if(!p||!Number.isInteger(cart[id])||cart[id]<=0)delete cart[id];else cart[id]=Math.min(cart[id],p.stock??99)}
 let priceMin=0,priceMax=Infinity;let filter='Все',budget=null,expanded=false,modalMode='',lastFocus=null,quizStep=0,quizAnswers={};
 const photo='<div class="photo"><span class="camera" aria-hidden="true"></span></div>';

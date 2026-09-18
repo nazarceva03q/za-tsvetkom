@@ -8,3 +8,7 @@
 .photo-prev{left:10px}.photo-next{right:10px}.photo-arrow:focus-visible{outline:2px solid white;outline-offset:3px}
 .photo-counter{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:#ffffffdd;padding:3px 10px;border-radius:20px;font-size:12px;color:var(--navy,#2c2d4c)}
 .photo-pending{padding:25px;text-align:center;color:#2c2d4c}.product-note{font-size:13px!important;line-height:1.5!important}.product-info{display:flex;flex-direction:column}.product-actions{margin-top:auto}.product-info .product-price{margin-top:auto;padding-block:12px}.product-detail .live-photo{max-width:480px;margin:20px auto}.product-detail .product-price{display:block;margin-block:18px}.product-info h3 button{text-align:left}.product-info p{color:#2c2d4c!important}
+.business-card .live-photo img{object-fit:contain}
+.business-card .live-photo{background:rgba(44,45,76,.08)}
+.business-card .business-photo-price{font-weight:600;font-size:15px;line-height:1.5;margin-block:12px}
+.business-card .product-actions{grid-template-columns:1fr}

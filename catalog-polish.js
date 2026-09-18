@@ -26,7 +26,7 @@ viewer.querySelector('.close').onclick=()=>viewer.close();
 viewer.addEventListener('click',e=>{if(e.target===viewer||e.target.classList.contains('zoom-stage'))viewer.close()});
 viewer.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'){e.preventDefault();moveZoom(-1)}if(e.key==='ArrowRight'){e.preventDefault();moveZoom(1)}e.stopPropagation()});
 viewer.addEventListener('close',()=>{document.body.style.overflow=previousOverflow;zoomFocus?.focus()});
-document.addEventListener('click',e=>{const button=e.target.closest('[data-photo-view]');if(!button)return;e.preventDefault();e.stopImmediatePropagation();const frame=button.closest('.live-photo');zoomProduct=catalog.find(p=>p.id===frame.dataset.photoProduct);if(!zoomProduct?.images.length)return;zoomIndex=Number(frame.dataset.photoIndex);zoomFocus=button;previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';drawZoom();viewer.showModal()},true);
+document.addEventListener('click',e=>{const button=e.target.closest('[data-photo-view]');if(!button)return;e.preventDefault();e.stopImmediatePropagation();const frame=button.closest('.live-photo');zoomProduct=allProducts.find(p=>p.id===frame.dataset.photoProduct);if(!zoomProduct?.images.length)return;zoomIndex=Number(frame.dataset.photoIndex);zoomFocus=button;previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';drawZoom();viewer.showModal()},true);
 polishPhotos();
 
 const headerBurger=$('#headerBurger'),mobileNavigation=$('#mobileNavigation');
