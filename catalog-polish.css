@@ -141,11 +141,15 @@ footer address,footer address+p{filter:none;text-shadow:none;box-shadow:none}
 .offer .offer-cta{transition:box-shadow .18s}
 .offer:is(:hover,:active,:focus-visible,.is-pressed) .offer-cta{box-shadow:var(--action-shadow)}
 #certificate h2+p{margin-top:20px}
-.quiz-options+.form-note{margin-top:24px}
+.quiz-options~.form-note{margin-top:28px;clear:both}
 .quiz-options button,.quiz-actions button{display:flex;align-items:center;justify-content:center;text-align:center}
 @media(max-width:900px){
  .navrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:7px}
  .navrow>#menuButton{min-width:0;white-space:normal}
+ .navrow>#menuButton{grid-row:1;grid-column:1}
+ .navrow>#favoritesButton{grid-row:1;grid-column:2}
+ .navrow>#cartButton{grid-row:1;grid-column:3}
  .navrow>#favoritesButton,.navrow>#cartButton{margin:0;white-space:nowrap;padding-inline:3px;gap:4px}
  .navrow>.search{grid-column:1/-1;width:100%;order:4}
 }
+@media(hover:none){.offer .offer-cta{transition:none}.offer:is(:active,.is-pressed) .offer-cta{box-shadow:0 0 16px 6px #819ae0a6,0 0 30px 9px #819ae066}}
