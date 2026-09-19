@@ -1,0 +1,4 @@
+﻿Background edits used built-in image_gen, one call per original photograph.
+Prompt: Replace only the background and visible person/hand/clothes with a pure white seamless background. Preserve the exact bouquet, balloon count, placement, colors, reflections, Cyrillic lettering, wrapping, ribbons and flowers; no redesign or added objects.
+Sources: IMG_20260918_204038_737.jpg, IMG_20260918_204038_731.jpg, IMG_20260918_204326_887.jpg, IMG_20260918_204326_897.jpg, IMG_20260918_204407_998.jpg.
+Outputs: lilac-1.png, lilac-2.png, red-gold-1.png, red-gold-2.png, red-hearts-1.png.

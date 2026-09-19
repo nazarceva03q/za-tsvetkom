@@ -1,4 +1,14 @@
 'use strict';
+window.BALLOON_BOUQUETS=[
+ ['lilac','Букет из сиреневых сердец',2500,2,'Фольгированные сердца · Упаковка · Ленты'],
+ ['red-gold','Красно-золотой букет из шаров',3200,2,'Красные и золотые шары · Гипсофила · Упаковка · Ленты'],
+ ['red-hearts','Букет из красных сердец',2500,1,'Фольгированные сердца · Упаковка · Ленты']
+].map(([slug,name,price,count,description])=>({
+ id:'balloon-bouquet-'+slug,slug:'balloon-bouquet-'+slug,name,price,description,
+ category:'Букеты из шаров',madeToOrder:true,stock:null,tags:'букет из шаров',
+ note:'Все букеты под заказ — в наличии их нет. Цвет уточняйте по наличию. Надписи можно любые. Упаковка — по наличию; по вашему желанию её можно заменить на другую.',
+ images:Array.from({length:count},(_,i)=>'assets/balloon-bouquets/'+slug+'-'+(i+1)+'.png')
+}));
 // Each photograph retains the price of its own installation, even within a venue carousel.
 window.BUSINESS_BALLOONS=[
  ['bright-entrance','Яркое оформление входа',[[1,8500]]],

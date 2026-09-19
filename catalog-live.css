@@ -12,3 +12,6 @@
 .business-card .live-photo{background:rgba(44,45,76,.08)}
 .business-card .business-photo-price{font-weight:600;font-size:15px;line-height:1.5;margin-block:12px}
 .business-card .product-actions{grid-template-columns:1fr}
+.balloon-bouquet-card .live-photo{background:#fff}
+.balloon-bouquet-card .live-photo img{object-fit:contain}
+.balloon-bouquet-card .product-note{font-size:15px!important;line-height:1.6!important}
