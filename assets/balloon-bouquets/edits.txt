@@ -1,4 +1,4 @@
-﻿Current assets: 13 original product photographs composited over the user-supplied wall photograph IMG_7752.png (background-wall.png).
+﻿Current assets: 12 original product photographs composited over the user-supplied wall photograph IMG_7752.png (background-wall.png).
 Method: deterministic clipping along manually traced contours, approved by the user. Original photographs are drawn at native 1440 x 1920 resolution. No product regeneration, recoloring or inscription rewriting. Output is lossless PNG. Boundary antialiasing and a narrow edge cleanup apply only along the cutout contour.
 The original photographs replace all earlier AI-edited versions of the first three bouquets. No image_gen output is used in the current balloon-bouquet catalog.
 cutout-contours.json records the paths on a 684 x 912 reference plane. The wall is scaled to the full image canvas before compositing.
@@ -7,7 +7,6 @@ Source mapping:
 lilac-1.png <- IMG_20260918_204038_737.jpg
 lilac-2.png <- IMG_20260918_204038_731.jpg
 red-gold-1.png <- IMG_20260918_204326_887.jpg
-red-gold-2.png <- IMG_20260918_204326_897.jpg
 red-hearts-1.png <- IMG_20260918_204407_998.jpg
 pink-silver-1.png <- IMG_20260918_204645_033.jpg
 rose-gold-confetti-1.png <- IMG_20260918_204645_007.jpg
@@ -18,4 +17,4 @@ coral-confetti-1.png <- IMG_20260918_204644_947.jpg
 coral-confetti-2.png <- IMG_20260918_204644_907.jpg
 purple-silver-1.png <- IMG_20260918_204644_895.jpg
 
-The two coral photographs share one product carousel. The repeated ninth photograph is omitted. The first two products also retain their two-angle carousels.
+The two coral photographs share one product carousel. The repeated ninth photograph is omitted. The lilac-heart product retains its two-angle carousel. The red-gold product has one photograph.
