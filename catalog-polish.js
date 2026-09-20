@@ -18,14 +18,47 @@ const viewer=document.createElement('dialog');viewer.id='photoViewer';viewer.set
 viewer.innerHTML='<button class="close" aria-label="Закрыть фотографию">×</button><div class="zoom-stage"><img alt=""></div><button class="photo-arrow zoom-prev" aria-label="Предыдущее фото"></button><button class="photo-arrow zoom-next" aria-label="Следующее фото"></button>';
 document.body.append(viewer);
 let zoomProduct,zoomIndex=0,zoomFocus,previousOverflow;
-function drawZoom(){const img=viewer.querySelector('img');img.src=zoomProduct.images[zoomIndex];img.alt=zoomProduct.name+' – фото '+(zoomIndex+1);viewer.querySelectorAll('.photo-arrow').forEach(b=>b.hidden=zoomProduct.images.length<2)}
+function drawZoom(){loadCompletePhoto(viewer.querySelector('img'),zoomProduct.images[zoomIndex],zoomProduct.name+' – фото '+(zoomIndex+1));viewer.querySelectorAll('.photo-arrow').forEach(b=>b.hidden=zoomProduct.images.length<2)}
 function moveZoom(delta){zoomIndex=(zoomIndex+delta+zoomProduct.images.length)%zoomProduct.images.length;drawZoom()}
 viewer.querySelector('.zoom-prev').innerHTML=chevron(-1);viewer.querySelector('.zoom-next').innerHTML=chevron(1);
 viewer.querySelector('.zoom-prev').onclick=()=>moveZoom(-1);viewer.querySelector('.zoom-next').onclick=()=>moveZoom(1);
 viewer.querySelector('.close').onclick=()=>viewer.close();
 viewer.addEventListener('click',e=>{if(e.target===viewer||e.target.classList.contains('zoom-stage'))viewer.close()});
 viewer.addEventListener('keydown',e=>{if(e.key==='ArrowLeft'){e.preventDefault();moveZoom(-1)}if(e.key==='ArrowRight'){e.preventDefault();moveZoom(1)}e.stopPropagation()});
-viewer.addEventListener('close',()=>{document.body.style.overflow=previousOverflow;zoomFocus?.focus()});
+viewer.addEventListener('close',()=>{const img=viewer.querySelector('img');img.photoRequest=null;img.removeAttribute('src');document.body.style.overflow=previousOverflow;zoomFocus?.focus()});
+
+// Horizontal photo swipes; vertical page scrolling and pinch zoom remain native.
+let photoGesture=null,photoClickSuppression=null;
+window.addEventListener('click',event=>{
+ if(photoClickSuppression&&performance.now()<photoClickSuppression.until&&photoClickSuppression.surface.contains(event.target)){
+  event.preventDefault();event.stopImmediatePropagation();photoClickSuppression=null;
+ }
+},true);
+document.addEventListener('pointerdown',event=>{
+ if(event.pointerType!=='touch'&&event.pointerType!=='pen')return;
+ if(!event.isPrimary){photoGesture=null;return}
+ photoClickSuppression=null;
+ const surface=event.target.closest('.live-photo,#photoViewer .zoom-stage');
+ if(!surface||event.target.closest('.heart,.photo-arrow,.photo-zoom'))return;
+ const product=surface.classList.contains('live-photo')?allProducts.find(p=>p.id===surface.dataset.photoProduct):zoomProduct;
+ if(!product||product.images.length<2)return;
+ photoGesture={surface,id:event.pointerId,x:event.clientX,y:event.clientY,axis:null};
+},{passive:true});
+document.addEventListener('pointermove',event=>{
+ const g=photoGesture;if(!g||g.id!==event.pointerId)return;
+ const dx=Math.abs(event.clientX-g.x),dy=Math.abs(event.clientY-g.y);
+ if(!g.axis&&Math.max(dx,dy)>12)g.axis=dx>dy*1.2?'horizontal':'vertical';
+},{passive:true});
+document.addEventListener('pointerup',event=>{
+ const g=photoGesture;if(!g||g.id!==event.pointerId)return;photoGesture=null;
+ const dx=event.clientX-g.x,dy=event.clientY-g.y;
+ if(g.axis==='vertical'||Math.abs(dx)<45||Math.abs(dx)<Math.abs(dy)*1.2)return;
+ const delta=dx<0?1:-1;
+ if(g.surface.classList.contains('live-photo'))moveProductPhoto(g.surface,delta);else moveZoom(delta);
+ photoClickSuppression={surface:g.surface,until:performance.now()+650};
+},{passive:true});
+document.addEventListener('pointercancel',()=>{photoGesture=null},{passive:true});
+document.addEventListener('dragstart',event=>{if(event.target.closest('.live-photo,#photoViewer .zoom-stage'))event.preventDefault()});
 document.addEventListener('click',e=>{const button=e.target.closest('[data-photo-view]');if(!button)return;e.preventDefault();e.stopImmediatePropagation();const frame=button.closest('.live-photo');zoomProduct=allProducts.find(p=>p.id===frame.dataset.photoProduct);if(!zoomProduct?.images.length)return;zoomIndex=Number(frame.dataset.photoIndex);zoomFocus=button;previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';drawZoom();viewer.showModal()},true);
 polishPhotos();
 
@@ -95,3 +128,14 @@ document.addEventListener('pointerdown',e=>{
 
 // Footer category shortcut uses the same filter as the balloon tabs.
 document.addEventListener('click',e=>{const link=e.target.closest('[data-balloon-link]');if(link){balloonFilter=link.dataset.balloonLink;balloonExpanded=false;renderBalloonCatalog();$('#balloons').scrollIntoView({behavior:'smooth'})}});
+
+// Move a favorite into the basket only after it was successfully added.
+const addFromGallery=add;
+add=function(id){const fromFavorites=modalMode==='favorites',before=cart[id]||0;addFromGallery(id);if(fromFavorites&&(cart[id]||0)>before){favorites=favorites.filter(value=>value!==id);updateCounts();render();showFavorites()}};
+const galleryRequestForm=form;
+form=function(subject,channel=''){
+ galleryRequestForm(subject,channel);
+ const request=$('#requestForm');if(!request)return;
+ if(subject.startsWith('Букет из шаров: '))request.elements.comment.placeholder='Всё, что важно';
+ if(subject==='Оформление для бизнеса'||BUSINESS_BALLOONS.some(product=>subject.startsWith(product.name+' – фото ')))$('#modalBody .modal-title')?.remove();
+};
