@@ -165,8 +165,15 @@ footer address,footer address+p{filter:none;text-shadow:none;box-shadow:none}
 .business-card .product-info .product-price{padding-block:4px}
 .business-card .product-info .business-photo-price{margin:0;line-height:1.4}
 .business-card .product-info .product-note{line-height:1.4!important}
-.product-grid:has(>.business-card){grid-auto-rows:1fr}
+.product-grid:has(>.business-card):not(:has(>.balloon-bouquet-card)){grid-auto-rows:1fr}
 .product-grid>.product-card.business-card:has(.live-photo){display:flex;grid-row:auto;grid-template-rows:none}
 .product-grid>.product-card.business-card:has(.live-photo) .product-info{display:flex;grid-row:auto;grid-template-rows:none;gap:8px}
 .business-card .product-info .product-price{margin-top:auto}
 .business-card .product-actions{width:100%}
+
+/* Mixed balloon galleries use one grid row per card, not shared subgrid tracks. */
+.product-grid:has(>.business-card):has(>.balloon-bouquet-card){grid-auto-rows:auto;align-items:start}
+.product-grid:has(>.business-card)>.balloon-bouquet-card:has(.live-photo){display:flex;grid-row:auto;grid-template-rows:none}
+.product-grid:has(>.business-card)>.balloon-bouquet-card:has(.live-photo) .product-info{display:flex;grid-row:auto;grid-template-rows:none;gap:14px}
+.product-grid:has(>.business-card)>.balloon-bouquet-card .product-actions{width:100%}
+.business-card .product-info .business-description{margin-top:14px;font-size:14px;line-height:1.4}
