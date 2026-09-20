@@ -20,3 +20,5 @@ purple-silver-1.png <- IMG_20260918_204644_895.jpg
 The two coral photographs share one product carousel. The repeated ninth photograph is omitted. The lilac-heart product retains its two-angle carousel. The red-gold product has one photograph.
 
 2026-09-20: Added 10 original heart bouquet photographs from Pictures as 8 products, 2500 RUB each. Matching views: 935 + 011; 937 + 166. Flattened onto #ece8e2 using saved contours.
+
+2026-09-20: Cleaned residual background fringes on lilac-2, lavender-cream-1/2 and gold-cream-hearts-1, including spaces between ribbons.
