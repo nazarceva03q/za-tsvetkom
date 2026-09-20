@@ -144,11 +144,14 @@ form=function(subject,channel=''){
 function alignBusinessCards(){
  const grid=$('#balloonProducts');if(!grid)return;
  const rows=['title','photo','note','price','action'];
- for(const row of rows)grid.style.removeProperty('--business-'+row+'-row');
- const cards=[...grid.querySelectorAll(':scope > .business-card .product-info')];
- if(!cards.length)return;
- const heights=rows.map((_,index)=>Math.ceil(Math.max(...cards.map(info=>info.children[index].getBoundingClientRect().height))));
- rows.forEach((row,index)=>grid.style.setProperty('--business-'+row+'-row',heights[index]+'px'));
+ for(const type of ['business','bouquet']){
+  for(const row of rows)grid.style.removeProperty('--'+type+'-'+row+'-row');
+  const selector=type==='business'?'.business-card':'.balloon-bouquet-card';
+  const cards=[...grid.querySelectorAll(':scope > '+selector+' .product-info')];
+  if(!cards.length)continue;
+  const heights=rows.map((_,index)=>Math.ceil(Math.max(...cards.map(info=>info.children[index].getBoundingClientRect().height))));
+  rows.forEach((row,index)=>grid.style.setProperty('--'+type+'-'+row+'-row',heights[index]+'px'));
+ }
 }
 let businessAlignmentFrame;
 function scheduleBusinessAlignment(){cancelAnimationFrame(businessAlignmentFrame);businessAlignmentFrame=requestAnimationFrame(alignBusinessCards)}

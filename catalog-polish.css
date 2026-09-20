@@ -183,3 +183,9 @@ footer address,footer address+p{filter:none;text-shadow:none;box-shadow:none}
  grid-template-rows:var(--business-title-row,auto) var(--business-photo-row,auto) var(--business-note-row,auto) var(--business-price-row,auto) var(--business-action-row,auto);
 }
 .business-card .product-info .product-price{margin-top:0}
+/* Independent shared rows keep bouquet cards equal in both balloon filters. */
+#balloonProducts>.product-card.balloon-bouquet-card:has(.live-photo){display:flex;grid-row:auto;grid-template-rows:none}
+#balloonProducts>.product-card.balloon-bouquet-card:has(.live-photo) .product-info{display:grid;flex:none;grid-row:auto;align-items:start;gap:14px;grid-template-rows:var(--bouquet-title-row,auto) var(--bouquet-photo-row,auto) var(--bouquet-note-row,auto) var(--bouquet-price-row,auto) var(--bouquet-action-row,auto)}
+#balloonProducts>.balloon-bouquet-card .product-info>h3,#balloonProducts>.balloon-bouquet-card .product-info>p{margin:0}
+#balloonProducts>.balloon-bouquet-card .product-actions{width:100%}
+
