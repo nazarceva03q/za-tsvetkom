@@ -139,3 +139,21 @@ form=function(subject,channel=''){
  if(subject.startsWith('Букет из шаров: '))request.elements.comment.placeholder='Всё, что важно';
  if(subject==='Оформление для бизнеса'||BUSINESS_BALLOONS.some(product=>subject.startsWith(product.name+' – фото ')))$('#modalBody .modal-title')?.remove();
 };
+
+// Share business row sizes across all visible cards, even in a mixed gallery.
+function alignBusinessCards(){
+ const grid=$('#balloonProducts');if(!grid)return;
+ const rows=['title','photo','note','price','action'];
+ for(const row of rows)grid.style.removeProperty('--business-'+row+'-row');
+ const cards=[...grid.querySelectorAll(':scope > .business-card .product-info')];
+ if(!cards.length)return;
+ const heights=rows.map((_,index)=>Math.ceil(Math.max(...cards.map(info=>info.children[index].getBoundingClientRect().height))));
+ rows.forEach((row,index)=>grid.style.setProperty('--business-'+row+'-row',heights[index]+'px'));
+}
+let businessAlignmentFrame;
+function scheduleBusinessAlignment(){cancelAnimationFrame(businessAlignmentFrame);businessAlignmentFrame=requestAnimationFrame(alignBusinessCards)}
+new MutationObserver(scheduleBusinessAlignment).observe($('#balloonProducts'),{childList:true});
+let businessGridWidth=0;
+new ResizeObserver(entries=>{const width=entries[0].contentRect.width;if(width!==businessGridWidth){businessGridWidth=width;scheduleBusinessAlignment()}}).observe($('#balloonProducts'));
+document.fonts.ready.then(scheduleBusinessAlignment);
+scheduleBusinessAlignment();

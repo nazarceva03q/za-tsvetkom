@@ -177,3 +177,9 @@ footer address,footer address+p{filter:none;text-shadow:none;box-shadow:none}
 .product-grid:has(>.business-card)>.balloon-bouquet-card:has(.live-photo) .product-info{display:flex;grid-row:auto;grid-template-rows:none;gap:14px}
 .product-grid:has(>.business-card)>.balloon-bouquet-card .product-actions{width:100%}
 .business-card .product-info .business-description{margin-top:14px;font-size:14px;line-height:1.4}
+/* Match every business content row across the whole visible category, including All. */
+.product-grid>.product-card.business-card:has(.live-photo) .product-info{
+ display:grid;flex:none;align-content:start;align-items:start;
+ grid-template-rows:var(--business-title-row,auto) var(--business-photo-row,auto) var(--business-note-row,auto) var(--business-price-row,auto) var(--business-action-row,auto);
+}
+.business-card .product-info .product-price{margin-top:0}
