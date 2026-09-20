@@ -21,8 +21,8 @@ window.BALLOON_BOUQUETS=[
 ].map(([slug,name,price,count,description])=>({
  id:'balloon-bouquet-'+slug,slug:'balloon-bouquet-'+slug,name,price,description,
  category:'Букеты из шаров',madeToOrder:true,stock:null,tags:'букет из шаров',
- note:'Все букеты под заказ – в наличии их нет. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию её можно заменить на другую.',
- images:Array.from({length:count},(_,i)=>'assets/balloon-bouquets/'+slug+'-'+(i+1)+'.png?v=solid-ece8e2-edge2')
+ note:'Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую',
+ images:Array.from({length:count},(_,i)=>'assets/balloon-bouquets/'+slug+'-'+(i+1)+'.png?v=solid-ece8e2-edge3')
 }));
 // Each photograph retains the price of its own installation, even within a venue carousel.
 window.BUSINESS_BALLOONS=[
@@ -36,13 +36,13 @@ window.BUSINESS_BALLOONS=[
  ['shawarma-orange','Шаурма не за горами – оранжевый фасад',[[10,6000]]],
  ['gazprom','Газпромнефть',[[12,33000],[13,33000],[14,33000]]],
  ['bank-stands','Стойки Совкомбанка',[[17,2500],[18,2500]],true],
- ['aerokos','Оформление шарами «Аэрокос»',[[11,8500]],false,'Баннер не входит в стоимость. Мы не изготавливаем и не предоставляем баннеры.'],
+ ['aerokos','«Аэрокос»',[[11,8500]],false,'Баннер не входит в стоимость. Мы не изготавливаем и не предоставляем баннеры.'],
  ['sports','Оформление спартакиады',[[19,8400]]],
  ['bank-facade','Совкомбанк и Халва – оформление фасада',[[20,17000],[21,17000]]],
  ['shawarma-soul','Шаверма от души',[[22,10000],[23,10000],[24,10000]]]
 ].map(([slug,name,photos,perStand=false,extra=''])=>({
  id:'business-'+slug,slug:'business-'+slug,name,business:true,perStand,
- description:extra||'Оформление воздушными шарами.',
+ description:extra,
  note:'Метраж рассчитывается индивидуально для каждого заказчика. Цена зависит от объёма работы.',
  price:Math.min(...photos.map(p=>p[1])),maxPrice:Math.max(...photos.map(p=>p[1])),
  images:photos.map(p=>'assets/business/'+String(p[0]).padStart(2,'0')+'.jpg'),

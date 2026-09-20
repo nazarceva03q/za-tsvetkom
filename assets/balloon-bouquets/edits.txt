@@ -22,3 +22,5 @@ The two coral photographs share one product carousel. The repeated ninth photogr
 2026-09-20: Added 10 original heart bouquet photographs from Pictures as 8 products, 2500 RUB each. Matching views: 935 + 011; 937 + 166. Flattened onto #ece8e2 using saved contours.
 
 2026-09-20: Cleaned residual background fringes on lilac-2, lavender-cream-1/2 and gold-cream-hearts-1, including spaces between ribbons.
+
+2026-09-20: Rebuilt lavender-cream (both), lilac (both), and red-gold from original photographs with smooth inset contours. Corrected lilac lower wrapping and red-gold upper/lower edges; removed green contamination around lavender wrapping and between ribbons. Background remains flattened #ece8e2.
