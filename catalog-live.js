@@ -29,7 +29,7 @@ async function moveProductPhoto(frame,delta){
  if(!await loadCompletePhoto(frame.querySelector('img'),p.images[i],p.name+' – фото '+(i+1)))return;
  frame.dataset.photoIndex=i;delete frame.dataset.pendingPhotoIndex;
  frame.querySelector('.photo-counter').textContent=(i+1)+' / '+p.images.length;
- if(p.business){const article=frame.closest('article');article.querySelector('.business-photo-price').textContent=businessPhotoPrice(p,i);article.querySelector('[data-form]').dataset.form=businessRequest(p,i)}
+ if(p.business){const article=frame.closest('article');if(article.querySelector('.business-photo-price'))article.querySelector('.business-photo-price').textContent=businessPhotoPrice(p,i);article.querySelector('[data-form]').dataset.form=businessRequest(p,i)}
 }
 document.addEventListener('click',e=>{const button=e.target.closest('[data-photo-step]');if(button)moveProductPhoto(button.closest('[data-photo-product]'),Number(button.dataset.photoStep))});
 function businessPrice(p){return (p.price===p.maxPrice?money(p.price):money(p.price)+' – '+money(p.maxPrice))+(p.perStand?' за 1 стойку':'')}
