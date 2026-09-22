@@ -19,4 +19,11 @@
 #care .care-photo{padding:0;background:none;height:auto;min-height:0;aspect-ratio:auto;border:0;max-width:470px;justify-self:center;overflow:visible;display:block;cursor:zoom-in}
 #care .care-photo img{width:100%;height:auto;display:block;border-radius:12px}
 .stationery-full{display:block;max-width:100%;height:auto;margin:20px auto}
+#offers .offers{width:100%;max-width:744px;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;grid-auto-rows:1fr}
+#offers .offer{display:grid;grid-template-rows:auto 58px 48px;align-content:start;justify-content:stretch;align-items:center;gap:12px;padding:24px;min-height:0;text-align:left}
+#offers .offer>span{margin:0;line-height:1.5}
+#offers .offer h3{margin:0;font-size:24px;line-height:1.2;align-self:start}
+#offers .offer>strong{display:inline-flex;align-items:center;justify-self:start;min-height:48px;margin:0}
+#offers .offer .offer-cta{margin:0;padding:12px 24px}
+@media(max-width:540px){#offers .offers{max-width:360px;grid-template-columns:1fr;gap:16px}#offers .offer{padding:20px;grid-template-rows:auto 53px 48px}#offers .offer h3{font-size:22px}}
 @media(max-width:540px){.compact-card .product-info{padding:12px!important}.compact-card .product-info>h3{font-size:15px!important}.compact-card .product-info>.stock,.compact-card .product-info>.product-note,.product-more{font-size:12px!important}.compact-card .product-info>.product-price{font-size:18px!important}#certificate.split-banner{grid-template-columns:1fr;gap:0}#certificate .certificate-art{width:calc(100% - 40px);margin:22px auto 30px}#care .care-photo{max-width:100%;margin-top:20px}}
