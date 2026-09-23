@@ -19,4 +19,6 @@ new MutationObserver(scheduleCompact).observe(document.querySelector('main'),{ch
 new MutationObserver(scheduleCompact).observe($('#modalBody'),{childList:true,subtree:true});
 window.addEventListener('resize',scheduleCompact);document.fonts.ready.then(scheduleCompact);
 document.addEventListener('click',event=>{const asset=event.target.closest('[data-stationery]');if(!asset)return;openModal(`<h2 class="modal-title">${esc(asset.dataset.title)}</h2><img class="stationery-full" src="${asset.dataset.stationery}" alt="${esc(asset.dataset.title)}"><a class="outline" href="${asset.dataset.stationery}" download>Скачать изображение</a>`,'stationery')});
+const renderFlowerCatalog=render;
+render=function(){renderFlowerCatalog();const daily=allProducts.find(p=>p.category==='Букет дня');const target=$('#dailyOffer');if(target){target.innerHTML=daily?card(daily):'';polishPhotos();scheduleCompact()}};
 render();renderBalloonCatalog();scheduleCompact();
