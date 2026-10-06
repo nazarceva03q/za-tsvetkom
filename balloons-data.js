@@ -22,7 +22,7 @@ window.BALLOON_BOUQUETS=[
  id:'balloon-bouquet-'+slug,slug:'balloon-bouquet-'+slug,name,price,description,
  category:'Букеты из шаров',madeToOrder:true,stock:null,tags:'букет из шаров',
  note:'Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую',
- images:Array.from({length:count},(_,i)=>'assets/balloon-bouquets/'+slug+'-'+(i+1)+'.png?v=solid-ece8e2-edge3')
+ images:Array.from({length:count},(_,i)=>'assets/balloon-bouquets/'+slug+'-'+(i+1)+(['gold-cream-hearts','red-cream-family'].includes(slug)?'-centered.png?v=20261006':'.png?v=solid-ece8e2-edge3'))
 }));
 // Each photograph retains the price of its own installation, even within a venue carousel.
 window.BUSINESS_BALLOONS=[
