@@ -3,7 +3,7 @@
 .hero-photo picture,.hero-photo picture img{display:block;width:100%;height:100%}
 .hero-photo picture{position:absolute;inset:0}
 .hero-photo picture img{object-fit:cover;object-position:center}
-.hero-photo>.script{z-index:1;color:var(--pink);text-shadow:none}
+.hero-photo>.script{z-index:1;color:#fff;text-shadow:none}
 #directionGrid .photo{overflow:hidden;padding:0}
 #directionGrid .photo img{display:block;width:100%;height:100%;object-fit:cover}
 #directionGrid .direction:first-child .photo img{object-position:center 62%}
@@ -17,7 +17,7 @@
  .hero::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(253,234,241,.70),rgba(253,234,241,.48) 45%,rgba(253,234,241,.06));z-index:0;pointer-events:none}
  .hero .hero-copy{position:relative;z-index:1;width:100%;padding:70px 48px 52px;color:var(--ink)}
  .hero .hero-copy h1,.hero .hero-copy p,.hero .hero-copy .eyebrow{color:var(--ink);text-shadow:none}
- .hero .hero-copy h1 .script{display:block;position:static;color:var(--pink);transform:rotate(-8deg);transform-origin:left center;margin:26px 0 28px 20px;line-height:1.3;text-shadow:none}
+ .hero .hero-copy h1 .script{display:block;position:static;color:#fff;transform:rotate(-8deg);transform-origin:left center;margin:26px 0 28px 20px;line-height:1.3;text-shadow:none}
  .hero .primary{background:var(--pink);border-color:var(--pink);color:#fff}
  .hero .outline{color:var(--ink);border:1px solid var(--ink);background:transparent}
  .hero .actions{display:flex;flex-direction:row;flex-wrap:wrap;max-width:600px;gap:14px}
