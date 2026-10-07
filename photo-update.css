@@ -40,10 +40,10 @@
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}*,*::before,*::after{animation:none!important;transition:none!important}}
 
-/* Persistent letter glow on the photo, with the eyebrow kept plain. */
+/* Plain hero lettering on tablet and mobile. */
 @media(max-width:1199px){
- .hero .hero-copy h1,.hero .hero-copy>p,.hero .hero-copy h1 .script{text-shadow:0 0 1px #819ae0,0 0 4px #819ae0,0 0 8px #819ae0}
- .hero .hero-copy h1 .script{color:var(--pink)}
+ .hero .hero-copy h1,.hero .hero-copy>p,.hero .hero-copy h1 .script{text-shadow:none}
+ .hero .hero-copy h1 .script{color:#fff}
  .hero .hero-copy .eyebrow{text-shadow:none}
 }
 #holidays .budget-row h3{margin-bottom:16px}
