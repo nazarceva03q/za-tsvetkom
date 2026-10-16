@@ -1,18 +1,28 @@
-name: REG.RU FTPS connection test
+name: Deploy website to REG.RU
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: website-deploy
+  cancel-in-progress: false
+
 jobs:
-  test-connection:
+  deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 30
 
     steps:
-      - name: Check secure FTPS connection
+      - name: Download website code
+        uses: actions/checkout@v4
+
+      - name: Upload website via FTPS
         env:
           FTP_HOST: ${{ secrets.FTP_HOST }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
@@ -21,15 +31,73 @@ jobs:
           python3 - <<'PY'
           import os
           from ftplib import FTP_TLS
+          from pathlib import Path
 
-          ftp = FTP_TLS(timeout=20)
+          root = Path(".")
+          excluded_dirs = {
+              ".git", ".github", ".vscode",
+              "node_modules", "__pycache__"
+          }
+          excluded_files = {
+              ".gitignore", ".env", ".env.example",
+              "server.cjs", "README.md",
+              "РУКОВОДСТВО.md", "LOGO.md",
+              "UX-UI-REVIEW.md"
+          }
+          excluded_suffixes = {".md", ".yml", ".yaml"}
+
+          ftp = FTP_TLS(timeout=60)
           ftp.connect(os.environ["FTP_HOST"], 21)
           ftp.login(
               os.environ["FTP_USERNAME"],
               os.environ["FTP_PASSWORD"]
           )
           ftp.prot_p()
-          print("Secure FTPS connection successful")
-          print("Remote directory:", ftp.pwd())
+          ftp.cwd("/")
+
+          def ensure_dir(path):
+              ftp.cwd("/")
+              for part in path.parts:
+                  if part in ("", "."):
+                      continue
+                  try:
+                      ftp.cwd(part)
+                  except Exception:
+                      ftp.mkd(part)
+                      ftp.cwd(part)
+
+          uploaded = 0
+
+          for directory, dirs, files in os.walk(root):
+              dirs[:] = [
+                  d for d in dirs
+                  if d not in excluded_dirs
+                  and not d.startswith(".")
+              ]
+
+              local_dir = Path(directory)
+              relative_dir = local_dir.relative_to(root)
+              ensure_dir(relative_dir)
+
+              for filename in files:
+                  if filename.startswith("."):
+                      continue
+                  if filename in excluded_files:
+                      continue
+                  if Path(filename).suffix.lower() in excluded_suffixes:
+                      continue
+
+                  file_path = local_dir / filename
+
+                  with file_path.open("rb") as file:
+                      ftp.storbinary(
+                          f"STOR {filename}",
+                          file
+                      )
+
+                  uploaded += 1
+                  print(f"Uploaded: {file_path}")
+
           ftp.quit()
+          print(f"Deployment completed. Files uploaded: {uploaded}")
           PY
