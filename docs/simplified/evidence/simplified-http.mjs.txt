@@ -52,6 +52,7 @@ export async function httpReview(php,{root,lab}){
  r=await request({method:'POST',cookie:loginCookie,body:'csrf='+loginCsrf+'&username=ekaterina-test&password=wrong'});assert(r.httpStatusCode===401,'wrong owner password blocked');
  r=await request({method:'POST',cookie:loginCookie,body:'csrf='+loginCsrf+'&username=ekaterina-test&password=local-password'});assert(r.httpStatusCode===303,'owner login successful');
  const sessionCookie=cookies(r).find(v=>v.startsWith('__Host-zt-owner='));
+ config.workflow={enabled:true};write();
  r=await request({cookie:sessionCookie});assert(r.httpStatusCode===200&&r.text.includes('Заявки магазина')&&r.text.includes('Выйти'),'owner list renders');
  fs.mkdirSync(path.join(root,'docs/simplified/evidence'),{recursive:true});fs.writeFileSync(path.join(root,'docs/simplified/evidence/panel-list.html'),r.text);
  r=await request({cookie:sessionCookie,query:'?type=question'});assert(r.httpStatusCode===200&&r.text.includes('Вопрос'),'filter non-product inquiries');
@@ -60,6 +61,17 @@ export async function httpReview(php,{root,lab}){
  assert(r.text.includes('&lt;script&gt;')&&!r.text.includes('<script>'),'stored XSS escaped');
  assert(!r.text.includes('Итого по товарам'),'no fabricated total');
  fs.writeFileSync(path.join(root,'docs/simplified/evidence/panel-detail.html'),r.text);
+ const wfCsrf=csrf(r);
+ assert(r.text.includes('name="next_action"'),'workflow edit form rendered');
+ const postWorkflow=(extra={})=>request({method:'POST',cookie:sessionCookie,body:new URLSearchParams({action:'workflow',csrf:wfCsrf,order_id:id,version:'0',status:'working',next_action:'reply',next_action_at:'2026-12-01T15:30',complaint:'0',...extra}).toString()});
+ r=await postWorkflow({csrf:'bad'});assert(r.httpStatusCode===403,'workflow bad CSRF blocked');
+ r=await request({method:'POST',cookie:sessionCookie,originValue:'https://evil.test',body:new URLSearchParams({action:'workflow',csrf:wfCsrf,order_id:id,version:'0',status:'working'}).toString()});assert(r.httpStatusCode===403,'workflow foreign origin blocked');
+ config.workflow.enabled=false;write();r=await postWorkflow();assert(r.httpStatusCode===403,'workflow disabled blocks mutation');config.workflow.enabled=true;write();
+ r=await postWorkflow();assert(r.httpStatusCode===303,'workflow authorized mutation redirects');
+ r=await postWorkflow();assert(r.httpStatusCode===409,'workflow stale form returns conflict');
+ assert((await sql('SELECT status FROM zt_orders WHERE id=?',[id]))[0].status==='working','workflow HTTP state persisted');
+ r=await request({cookie:sessionCookie,query:'?id='+id});fs.writeFileSync(path.join(root,'docs/simplified/evidence/panel-detail.html'),r.text);
+ r=await request({cookie:sessionCookie});fs.writeFileSync(path.join(root,'docs/simplified/evidence/panel-list.html'),r.text);
  r=await request({cookie:sessionCookie,query:'?id=bad'});assert(r.httpStatusCode===404,'invalid request ID is 404');
  r=await request({cookie:sessionCookie,query:'?type=bad'});assert(r.httpStatusCode===422,'invalid filter rejected');
  r=await request({cookie:sessionCookie});const logoutCsrf=csrf(r);

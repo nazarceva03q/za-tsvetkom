@@ -10,6 +10,13 @@ return [
     'password'=>'',
     'rate_secret'=>'', // separate random_bytes(32), hex encoded
     'rate_limit'=>10,
+    'workflow'=>['enabled'=>false], // enable ONLY after migration 004 and updated lib/UI
+    'retention'=>[
+        'approved'=>false, // operator approves purpose, closure and deletion rules
+        'enabled'=>false, // CLI --apply is additionally required
+        'closed_no_purchase_days'=>30, // proposal, not an approved universal retention period
+        'backup_procedure_approved'=>false, // backups, restores and external copies covered separately
+    ],
     'notifications'=>[
         'enabled'=>false, // ONLY after separate permission and Yandex/VK setup
         'url'=>'', // https://functions.yandexcloud.net/<function-id>, no query/key in URL

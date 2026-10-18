@@ -3,6 +3,7 @@ declare(strict_types=1);
 namespace ZTOrders;
 require_once __DIR__ . '/Notifications.php';
 require_once __DIR__ . '/RequestView.php';
+require_once __DIR__ . '/Workflow.php';
 function escape(string $text): string { return htmlspecialchars($text, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 function ownerCookie(string $name, string $value, int $expires): void {
     setcookie($name, $value, ['expires'=>$expires, 'path'=>'/', 'secure'=>true, 'httponly'=>true, 'samesite'=>'Strict']);
@@ -35,6 +36,12 @@ function ownerPage(array $config): void {
             $q = $db->prepare('DELETE FROM zt_owner_sessions WHERE token_hash=?'); $q->execute([hash('sha256',$token)]);
             ownerCookie('__Host-zt-owner','',time()-3600); header('Location: orders.php',true,303); return;
         }
+        if ($session && ($_POST['action'] ?? '') === 'workflow') {
+            if (($config['workflow']['enabled']??false)!==true) {http_response_code(403);echo 'Изменения заявок пока выключены.';return;}
+            try {$id=saveWorkflow($db,$_POST);header('Location: orders.php?id='.$id,true,303);return;}
+            catch(WorkflowError $e){http_response_code(409);pageStart();echo '<p class="error" role="alert">'.escape($e->getMessage()).'</p><a href="orders.php">Открыть актуальный список</a>';pageEnd();return;}
+        }
+        if ($session) {http_response_code(400);echo 'Неизвестное действие.';return;}
         if (!$session) {
             $bucket = hash_hmac('sha256', ($_SERVER['REMOTE_ADDR'] ?? 'unknown') . ':' . intdiv(time(),900), $owner['secret']);
             // Atomic increment counts every attempt; concurrent requests cannot bypass the limit.
@@ -60,5 +67,5 @@ function ownerPage(array $config): void {
         http_response_code(405); return;
     }
     if (!$session && !$error) http_response_code(401);
-    renderRequestView($db, $session, $csrf, $error);
+    renderRequestView($db, $session, $csrf, $error, ($config['workflow']['enabled']??false)===true);
 }

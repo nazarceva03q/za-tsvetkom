@@ -2,7 +2,10 @@
 const fs=require('node:fs'),path=require('node:path'),http=require('node:http'),assert=require('node:assert/strict');
 const {chromium}=require('C:/Users/User/AppData/Local/npm-cache/_npx/e41f203b7505f1fb/node_modules/playwright');
 const root=path.resolve(__dirname,'..'),evidence=path.join(root,'docs/simplified/evidence');
+const posted=[];
 const server=http.createServer((req,res)=>{
+ res.setHeader('Referrer-Policy','same-origin');
+ if(req.method==='POST'){let body='';req.on('data',b=>body+=b);req.on('end',()=>{posted.push({origin:req.headers.origin,body:new URLSearchParams(body)});res.setHeader('Content-Type','text/plain');res.end('FORM_POST_CAPTURED');});return;}
  const url=new URL(req.url,'http://localhost');
  const file=url.pathname.endsWith('orders.css')?path.join(root,'owner/orders.css'):path.join(evidence,url.searchParams.has('id')?'panel-detail.html':'panel-list.html');
  res.setHeader('Content-Type',file.endsWith('.css')?'text/css':'text/html; charset=utf-8');fs.createReadStream(file).pipe(res);
@@ -13,6 +16,7 @@ const server=http.createServer((req,res)=>{
  const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
  try{
   const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  assert(fs.readFileSync(path.join(root,'owner/orders.php'),'utf8').includes("header('Referrer-Policy: same-origin')"),'real panel policy preserves form Origin');
   await page.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
   for(const width of [390,1280]){
    await page.setViewportSize({width,height:900});await page.goto(origin+'/owner/orders.php');
@@ -25,9 +29,19 @@ const server=http.createServer((req,res)=>{
    assert((await page.locator('.phone').getAttribute('href')).startsWith('tel:+7'));
    assert.equal(await page.locator('script,img').count(),0);
    await page.screenshot({path:path.join(evidence,'panel-detail-'+width+'.png'),fullPage:true});
+   if(await page.locator('form input[name=action][value=workflow]').count()){
+    await page.locator('select[name=status]').selectOption('working');
+    await page.locator('select[name=next_action]').selectOption('review');
+    await page.locator('input[name=next_action_at]').fill('2026-12-01T15:30');
+    await page.getByRole('button',{name:'Сохранить изменения'}).click();
+    await page.waitForURL('**/orders.php?id=*');
+    await page.waitForSelector('body:has-text("FORM_POST_CAPTURED")');
+    const p=posted.at(-1);assert.equal(p.origin,origin);assert.equal(p.body.get('status'),'working');assert.equal(p.body.get('next_action'),'review');assert(/^[a-f0-9]{64}$/.test(p.body.get('csrf')));
+   }
   }
   assert.deepEqual(errors,[]);
   fs.writeFileSync(path.join(evidence,'panel-browser.json'),JSON.stringify({viewports:[390,1280],list:true,detail:true,noHorizontalOverflow:true,externalRequests:false,mode:'HTML rendered by isolated PHP with synthetic data; authentication tested separately'},null,2));
-  console.log('PASS owner panel list/detail at 390 and 1280px, phone link, no scripts/images/external network');
+  assert.equal(posted.length,2,'workflow forms submitted at both widths');
+  console.log('PASS owner panel list/detail at 390 and 1280px, workflow form POST with correct Origin/CSRF, phone link, no scripts/images/external network');
  }finally{await browser.close();await new Promise(r=>server.close(r))}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1});

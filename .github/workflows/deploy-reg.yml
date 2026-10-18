@@ -1,103 +1,37 @@
 name: Deploy website to REG.RU
-
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
-
+    inputs:
+      dry_run:
+        description: Check files without connecting to hosting
+        type: boolean
+        default: true
+        required: true
 permissions:
   contents: read
-
 concurrency:
   group: website-deploy
   cancel-in-progress: false
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-
     steps:
-      - name: Download website code
-        uses: actions/checkout@v4
-
-      - name: Upload website via FTPS
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Validate public upload list
+        run: python3 scripts/publish-storefront.py --dry-run
+      - name: Publish public storefront
+        if: >-
+          github.ref == 'refs/heads/main' && vars.SITE_DEPLOY_READY == 'true' &&
+          (github.event_name == 'push' || inputs.dry_run == false)
         env:
+          SITE_DEPLOY_READY: ${{ vars.SITE_DEPLOY_READY }}
+          FTP_WEB_ROOT: ${{ vars.FTP_WEB_ROOT }}
           FTP_HOST: ${{ secrets.FTP_HOST }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
-        run: |
-          python3 - <<'PY'
-          import os
-          from ftplib import FTP_TLS
-          from pathlib import Path
-
-          root = Path(".")
-          excluded_dirs = {
-              ".git", ".github", ".vscode",
-              "node_modules", "__pycache__"
-          }
-          excluded_files = {
-              ".gitignore", ".env", ".env.example",
-              "server.cjs", "README.md",
-              "РУКОВОДСТВО.md", "LOGO.md",
-              "UX-UI-REVIEW.md"
-          }
-          excluded_suffixes = {".md", ".yml", ".yaml"}
-
-          ftp = FTP_TLS(timeout=60)
-          ftp.connect(os.environ["FTP_HOST"], 21)
-          ftp.login(
-              os.environ["FTP_USERNAME"],
-              os.environ["FTP_PASSWORD"]
-          )
-          ftp.prot_p()
-          ftp.cwd("/")
-
-          def ensure_dir(path):
-              ftp.cwd("/")
-              for part in path.parts:
-                  if part in ("", "."):
-                      continue
-                  try:
-                      ftp.cwd(part)
-                  except Exception:
-                      ftp.mkd(part)
-                      ftp.cwd(part)
-
-          uploaded = 0
-
-          for directory, dirs, files in os.walk(root):
-              dirs[:] = [
-                  d for d in dirs
-                  if d not in excluded_dirs
-                  and not d.startswith(".")
-              ]
-
-              local_dir = Path(directory)
-              relative_dir = local_dir.relative_to(root)
-              ensure_dir(relative_dir)
-
-              for filename in files:
-                  if filename.startswith("."):
-                      continue
-                  if filename in excluded_files:
-                      continue
-                  if Path(filename).suffix.lower() in excluded_suffixes:
-                      continue
-
-                  file_path = local_dir / filename
-
-                  with file_path.open("rb") as file:
-                      ftp.storbinary(
-                          f"STOR {filename}",
-                          file
-                      )
-
-                  uploaded += 1
-                  print(f"Uploaded: {file_path}")
-
-          ftp.quit()
-          print(f"Deployment completed. Files uploaded: {uploaded}")
-          PY
+        run: python3 scripts/publish-storefront.py --apply

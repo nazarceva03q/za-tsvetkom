@@ -12,7 +12,7 @@ try{
  const put=(target,source)=>{php.mkdirTree(path.posix.dirname(target));php.writeFile(target,fs.readFileSync(path.join(root,source)))};
  for(const f of fs.readdirSync(path.join(root,'backend/orders/lib')))put('/private/lib/'+f,'backend/orders/lib/'+f);
  for(const f of fs.readdirSync(path.join(root,'backend/orders/migrations')))put('/migrations/'+f,'backend/orders/migrations/'+f);
- for(const f of ['orders-validation.php','simplified-mysql.php'])put('/project/tests/'+f,'tests/'+f);
+ for(const f of ['orders-validation.php','simplified-mysql.php','workflow-mysql.php'])put('/project/tests/'+f,'tests/'+f);
  put('/project/backend/orders/lib/Validation.php','backend/orders/lib/Validation.php');
  put('/public/api/v1/orders.php','api/v1/orders.php');put('/public/owner/orders.php','owner/orders.php');
  const lintFiles=['backend/orders/config.example.php','backend/orders/bin/notify.php','api/v1/orders.php','owner/orders.php',...fs.readdirSync(path.join(root,'backend/orders/lib')).map(f=>'backend/orders/lib/'+f)];
@@ -23,8 +23,9 @@ try{
  php.writeFile('/lab.json',JSON.stringify(lab));
  r=await php.run({code:'<?php $lab=json_decode(file_get_contents("/lab.json"),true);require "/project/tests/simplified-mysql.php";'});console.log(r.text);if(r.errors||r.exitCode)throw Error(r.errors);
  const database=r.text;
+ r=await php.run({code:'<?php $lab=json_decode(file_get_contents("/lab.json"),true);require "/project/tests/workflow-mysql.php";'});console.log(r.text);if(r.errors||r.exitCode)throw Error(r.errors);const workflow=r.text;
  const {httpReview}=await import('./simplified-http.mjs');
  const review=await httpReview(php,{root,lab});
  fs.mkdirSync(path.join(root,'docs/simplified/evidence'),{recursive:true});
- fs.writeFileSync(path.join(root,'docs/simplified/evidence/php-mysql.json'),JSON.stringify({php:'8.3.33 WASM',mysql:'8.0.46 isolated',syntaxFiles:lintFiles.length,validation,database,...review,externalNetwork:false,nativeFastCGI:false},null,2));
+ fs.writeFileSync(path.join(root,'docs/simplified/evidence/php-mysql.json'),JSON.stringify({php:'8.3.33 WASM',mysql:'8.0.46 isolated',syntaxFiles:lintFiles.length,validation,database,workflow,...review,externalNetwork:false,nativeFastCGI:false},null,2));
 }finally{if(php)php.exit();for(const s of sockets)s.destroy();await new Promise(r=>server.close(r));}
