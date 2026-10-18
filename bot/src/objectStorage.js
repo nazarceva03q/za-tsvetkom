@@ -1,0 +1,206 @@
+// Минимальный клиент Yandex Object Storage (S3-совместимое API) — только
+// то, что нужно этому боту: прочитать/записать один JSON-объект в бакете.
+// Реализован на встроенных модулях Node (https, crypto) — без внешних
+// npm-пакетов, чтобы всю функцию можно было вставить прямо в inline-редактор
+// кода Yandex Cloud Functions (Источник кода → «Редактор кода»), без сборки
+// ZIP-архива и node_modules.
+//
+// Подпись запросов — по алгоритму AWS Signature V4 (Yandex Object Storage
+// S3-совместим и принимает обычные подписанные S3-запросы со статическими
+// ключами доступа сервисного аккаунта). Регион для подписи — "ru-central1"
+// (стандартное значение для Yandex Object Storage).
+//
+// Нужны переменные окружения (задаются в настройках функции в консоли):
+//   YC_S3_BUCKET       – имя бакета, например zatsvetkom-bot-data
+//   YC_S3_ACCESS_KEY   – Key ID статического ключа сервисного аккаунта
+//   YC_S3_SECRET_KEY   – Secret статического ключа
+// Как их получить — см. bot/README.md, раздел «Yandex Object Storage».
+
+const https = require('https');
+const crypto = require('crypto');
+
+const REGION = 'ru-central1';
+const SERVICE = 's3';
+const HOST = 'storage.yandexcloud.net';
+
+function hmac(key, data) {
+  return crypto.createHmac('sha256', key).update(data, 'utf8').digest();
+}
+function hash(data) {
+  return crypto.createHash('sha256').update(data, 'utf8').digest('hex');
+}
+
+function getSignatureKey(secretKey, dateStamp, region, service) {
+  const kDate = hmac('AWS4' + secretKey, dateStamp);
+  const kRegion = hmac(kDate, region);
+  const kService = hmac(kRegion, service);
+  return hmac(kService, 'aws4_request');
+}
+
+// method: 'GET' | 'PUT'; objectKey: путь объекта в бакете (без ведущего /,
+// пустая строка — операция над самим бакетом, см. queryString ниже);
+// body: строка/Buffer (для PUT) или '' (для GET). queryString — подресурс
+// бакета без ведущего '?' (например, 'cors') — нужен только putBucketCors,
+// обычные операции с объектами его не передают.
+function signedRequest(method, bucket, objectKey, body, accessKey, secretKey, queryString) {
+  const now = new Date();
+  const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, ''); // YYYYMMDDTHHMMSSZ
+  const dateStamp = amzDate.slice(0, 8);
+
+  const canonicalUri = '/' + bucket + (objectKey ? '/' + objectKey : '/');
+  const canonicalQueryString = queryString || '';
+  const payloadHash = hash(body || '');
+
+  const canonicalHeaders =
+    'host:' + HOST + '\n' +
+    'x-amz-content-sha256:' + payloadHash + '\n' +
+    'x-amz-date:' + amzDate + '\n';
+  const signedHeaders = 'host;x-amz-content-sha256;x-amz-date';
+
+  const canonicalRequest = [method, canonicalUri, canonicalQueryString, canonicalHeaders, signedHeaders, payloadHash].join('\n');
+
+  const credentialScope = dateStamp + '/' + REGION + '/' + SERVICE + '/aws4_request';
+  const stringToSign = ['AWS4-HMAC-SHA256', amzDate, credentialScope, hash(canonicalRequest)].join('\n');
+
+  const signingKey = getSignatureKey(secretKey, dateStamp, REGION, SERVICE);
+  const signature = crypto.createHmac('sha256', signingKey).update(stringToSign, 'utf8').digest('hex');
+
+  const authorization =
+    'AWS4-HMAC-SHA256 Credential=' + accessKey + '/' + credentialScope +
+    ', SignedHeaders=' + signedHeaders + ', Signature=' + signature;
+
+  return {
+    path: canonicalUri + (canonicalQueryString ? '?' + canonicalQueryString : ''),
+    headers: {
+      Host: HOST,
+      'X-Amz-Date': amzDate,
+      'X-Amz-Content-Sha256': payloadHash,
+      Authorization: authorization
+    }
+  };
+}
+
+function request(method, objectKey, body, config, extraHeaders = {}, queryString) {
+  return new Promise((resolve, reject) => {
+    const { path, headers } = signedRequest(method, config.bucket, objectKey, body, config.accessKey, config.secretKey, queryString);
+    Object.assign(headers, extraHeaders);
+    const data = body ? Buffer.from(body, 'utf8') : null;
+    if (data) headers['Content-Length'] = data.length;
+
+    const req = https.request({ hostname: HOST, path, method, headers }, (res) => {
+      const chunks = [];
+      res.on('error', reject);
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => {
+        resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString('utf8') });
+      });
+    });
+    req.setTimeout(15000, () => req.destroy(new Error('Object Storage timeout')));
+    req.on('error', reject);
+    if (data) req.write(data);
+    req.end();
+  });
+}
+
+// Возвращает распарсенный JSON или fallback, если объекта ещё нет (404)
+// Любая другая ошибка прерывает операцию, чтобы не перезаписать каталог пустыми данными.
+async function getJson(config, objectKey, fallback) {
+  if (!config.bucket || !config.accessKey || !config.secretKey) {
+    throw new Error('Object Storage не настроен для чтения ' + objectKey);
+  }
+  try {
+    const res = await request('GET', objectKey, '', config);
+    if (res.status === 404) return fallback;
+    if (res.status !== 200) {
+      throw new Error('Object Storage GET ' + objectKey + ': ' + res.status);
+    }
+    return JSON.parse(res.body);
+  } catch (e) {
+    console.error('[objectStorage] GET ' + objectKey + ' упал:', e.message);
+    throw e;
+  }
+}
+
+async function putJson(config, objectKey, data) {
+  if (!config.bucket || !config.accessKey || !config.secretKey) {
+    console.warn('[objectStorage] YC_S3_* не настроены, запись', objectKey, 'пропущена');
+    return false;
+  }
+  try {
+    const res = await request('PUT', objectKey, JSON.stringify(data, null, 2), config, { 'Content-Type': 'application/json' });
+    if (res.status !== 200) {
+      console.error('[objectStorage] PUT ' + objectKey + ' -> ' + res.status, res.body);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error('[objectStorage] PUT ' + objectKey + ' упал:', e.message);
+    return false;
+  }
+}
+
+// Загрузка бинарного файла (фото товара) в ПУБЛИЧНЫЙ бакет — используется
+// products.js, когда владелица присылает боту фото при добавлении/изменении
+// товара. Бакет должен быть настроен на публичное чтение целиком (см.
+// bot/README.md, раздел «Публичный бакет для каталога») — тогда отдельный
+// ACL на объект не нужен, обычный подписанный PUT работает так же, как
+// putJson выше, просто с телом-Buffer и своим Content-Type.
+async function putObject(config, objectKey, buffer, contentType) {
+  if (!config.bucket || !config.accessKey || !config.secretKey) {
+    console.warn('[objectStorage] YC_PUBLIC_S3_BUCKET/YC_S3_* не настроены, загрузка', objectKey, 'пропущена');
+    return false;
+  }
+  try {
+    const res = await request('PUT', objectKey, buffer, config, { 'Content-Type': contentType || 'application/octet-stream' });
+    if (res.status !== 200) {
+      console.error('[objectStorage] PUT(binary) ' + objectKey + ' -> ' + res.status, res.body);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error('[objectStorage] PUT(binary) ' + objectKey + ' упал:', e.message);
+    return false;
+  }
+}
+
+// Публичный HTTPS-адрес объекта — работает только если бакет открыт на
+// чтение (см. комментарий выше у putObject).
+function publicUrl(config, objectKey) {
+  return 'https://' + HOST + '/' + config.bucket + '/' + objectKey;
+}
+
+// Настройка CORS на самом бакете (не на бота — используется один раз,
+// вручную, через scripts/configure-cors.js) — без этого браузер молча
+// блокирует fetch() с сайта (za-tsvetkom.ru или иной домен магазина) к catalog.json на другом
+// домене (storage.yandexcloud.net), даже если сам объект публично читаемый
+// и прекрасно открывается прямым переходом по ссылке или через curl —
+// проверка CORS применяется браузером только к запросам из JS, не к
+// обычной навигации и не к curl/серверным запросам.
+async function putBucketCors(config, corsXml) {
+  if (!config.bucket || !config.accessKey || !config.secretKey) {
+    console.warn('[objectStorage] YC_S3_*/YC_PUBLIC_S3_BUCKET не настроены, настройка CORS пропущена');
+    return false;
+  }
+  try {
+    const res = await request('PUT', '', corsXml, config, { 'Content-Type': 'application/xml' }, 'cors=');
+    if (res.status !== 200) {
+      console.error('[objectStorage] PUT ?cors -> ' + res.status, res.body);
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error('[objectStorage] PUT ?cors упал:', e.message);
+    return false;
+  }
+}
+
+// Atomic across cloud function instances: only the first delivery claims the ID.
+async function createJsonOnce(config, objectKey, data) {
+  if (!config.bucket || !config.accessKey || !config.secretKey) throw new Error('Dedup storage is not configured');
+  const res = await request('PUT', objectKey, JSON.stringify(data), config, { 'If-None-Match': '*' });
+  if (res.status === 200) return true;
+  if (res.status === 412) return false;
+  throw new Error('Dedup conditional PUT failed: ' + res.status);
+}
+
+module.exports = { getJson, putJson, createJsonOnce, putObject, publicUrl, putBucketCors };

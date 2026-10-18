@@ -1,0 +1,13 @@
+{
+  "name": "za-tsvetkom-vk-bot",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test ../tests/admin-flow.cjs ../tests/vk-bot.cjs",
+    "build:cloud": "node scripts/build-yandex-zip.cjs"
+  }
+}

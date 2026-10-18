@@ -1,0 +1,68 @@
+# ПРОЕКТ ДЛЯ СОГЛАСОВАНИЯ. Не копировать в .github/workflows без разрешения.
+# Только обновление существующей витрины. Фото и PHP выкладываются отдельно.
+name: Publish reviewed storefront
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Only list files, without connecting to FTP
+        type: boolean
+        default: true
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: website-deploy
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Publish explicit storefront files only
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_WEB_ROOT: ${{ vars.FTP_WEB_ROOT }}
+        run: |
+          python3 - <<'PY'
+          import os, ssl
+          from pathlib import Path, PurePosixPath
+          from ftplib import FTP_TLS
+          files = '''index.html legal.html
+          app.js refinement.js details.js catalog-live.js catalog-polish.js
+          compact-cards.js motion.js catalog-sync.js checkout.js checkout-client.js
+          products-data.js balloons-data.js daily-bouquets.js
+          styles.css refinement.css details.css catalog-live.css catalog-polish.css
+          compact-cards.css photo-update.css robots.txt'''.split()
+          for name in files:
+              path = Path(name)
+              if not path.is_file() or path.is_symlink() or len(path.parts) != 1:
+                  raise RuntimeError('Invalid approved file: ' + name)
+              print('Approved:', name)
+          mode = os.environ.get('DRY_RUN', '').lower()
+          if mode not in ('true', 'false'):
+              raise RuntimeError('Explicit dry_run value is required')
+          if mode == 'true':
+              raise SystemExit(0)
+          target = os.environ.get('FTP_WEB_ROOT', '')
+          if (not target.startswith('/') or '..' in PurePosixPath(target).parts
+              or any(ord(c) < 32 or c == chr(92) for c in target)):
+              raise RuntimeError('Set and verify FTP_WEB_ROOT before publication')
+          with FTP_TLS(context=ssl.create_default_context(), timeout=60) as ftp:
+              ftp.connect(os.environ['FTP_HOST'], 21)
+              ftp.login(os.environ['FTP_USERNAME'], os.environ['FTP_PASSWORD'])
+              ftp.prot_p()
+              ftp.cwd(target)
+              # Upload entry HTML last. No traversal, deletes, or directory creation.
+              for name in [n for n in files if n != 'index.html'] + ['index.html']:
+                  with open(name, 'rb') as source:
+                      ftp.storbinary('STOR ' + name, source)
+          PY

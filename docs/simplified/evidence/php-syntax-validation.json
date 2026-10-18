@@ -1,0 +1,21 @@
+{
+  "php": "8.3.33 WASM",
+  "syntaxFiles": [
+    "backend/orders/config.example.php",
+    "backend/orders/bin/notify.php",
+    "api/v1/orders.php",
+    "owner/orders.php",
+    "tests/orders-validation.php",
+    "tests/simplified-mysql.php",
+    "backend/orders/lib/Http.php",
+    "backend/orders/lib/Notifications.php",
+    "backend/orders/lib/Owner.php",
+    "backend/orders/lib/Repository.php",
+    "backend/orders/lib/RequestView.php",
+    "backend/orders/lib/Validation.php",
+    "backend/orders/lib/YandexRelay.php"
+  ],
+  "validation": "PASS no confirmed price or catalog lookup\nPASS name snapshot from request\nPASS no photo snapshot\nPASS non-product form gift\nPASS non-product form large\nPASS non-product form corporate\nPASS non-product form question\nPASS non-product form preorder\nPASS non-product form other\nPASS invalid phone\nPASS invalid name\nPASS invalid consent\nPASS invalid consentVersion\nPASS invalid requestType\nPASS invalid date\nPASS invalid website\nPASS invalid comment\nPASS invalid budget\nPASS invalid quantity\nPASS invalid address\nPASS price payload rejected\nPASS photos rejected\nPASS empty item name\nPASS duplicate product id\nPASS quantity bound\nPASS question requires text\nPASS replay ignores elapsed date before lookup\nTOTAL 27\n",
+  "relay": "PASS relay response identity, malformed response, HTTP error and URL restrictions",
+  "network": false
+}

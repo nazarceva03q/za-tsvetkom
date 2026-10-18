@@ -1,0 +1,11 @@
+{
+  "viewports": [
+    390,
+    1280
+  ],
+  "list": true,
+  "detail": true,
+  "noHorizontalOverflow": true,
+  "externalRequests": false,
+  "mode": "HTML rendered by isolated PHP with synthetic data; authentication tested separately"
+}

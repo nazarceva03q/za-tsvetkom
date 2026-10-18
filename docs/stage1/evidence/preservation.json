@@ -1,0 +1,10 @@
+{
+  "manifests": {
+    "docs/stage1/unchanged-files.json": 29,
+    "docs/stage1/review-input-hashes.json": 8
+  },
+  "catalogSyncPreserved": true,
+  "existingHitSortPreserved": true,
+  "emptyCatalogUrlPreserved": true,
+  "legalOriginalUnchanged": true
+}

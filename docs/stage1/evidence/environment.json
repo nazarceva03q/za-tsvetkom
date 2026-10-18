@@ -1,0 +1,18 @@
+{
+  "phpRuntime": {
+    "version": "8.3.33",
+    "pdo": [
+      "mysql",
+      "sqlite"
+    ]
+  },
+  "phpWasmNode": "3.1.58",
+  "phpWasmUniversal": "3.1.58",
+  "mysqlVersion": "8.0.46",
+  "mysqlSource": "https://cdn.mysql.com/Downloads/MySQL-8.0/mysql-8.0.46-winx64.zip",
+  "mysqlMd5": "003f527d5df61b663ff191038cd676bd",
+  "projectDependenciesUnchanged": true,
+  "labOutsideRepository": true,
+  "windowsServiceInstalled": false,
+  "testServerStopped": true
+}

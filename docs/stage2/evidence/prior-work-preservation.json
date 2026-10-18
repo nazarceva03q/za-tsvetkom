@@ -1,0 +1,34 @@
+[
+  {
+    "file": "app.js",
+    "unchanged": true
+  },
+  {
+    "file": "index.html",
+    "unchanged": true
+  },
+  {
+    "file": "refinement.js",
+    "unchanged": true
+  },
+  {
+    "file": "catalog-sync.js",
+    "unchanged": true
+  },
+  {
+    "file": "package.json",
+    "unchanged": true
+  },
+  {
+    "file": "tests/admin-flow.cjs",
+    "unchanged": true
+  },
+  {
+    "file": "tests/vk-bot.cjs",
+    "unchanged": true
+  },
+  {
+    "file": "legal.html",
+    "unchanged": true
+  }
+]

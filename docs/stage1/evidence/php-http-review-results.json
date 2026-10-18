@@ -1,0 +1,19 @@
+{
+  "php": "8.3.33 WebAssembly",
+  "mysql": "8.0.46",
+  "cases": [
+    "disabled",
+    "foreign origin",
+    "invalid JSON",
+    "invalid key",
+    "saved after commit",
+    "same key same order",
+    "same key changed body",
+    "tampered price",
+    "unknown product",
+    "queue failure rolls back whole order",
+    "DB failure sanitized",
+    "retry after ignored saved response"
+  ],
+  "nativeFastCGI": false
+}

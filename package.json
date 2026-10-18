@@ -1,0 +1,10 @@
+{
+  "name": "za-tsvetkom",
+  "version": "1.0.0",
+  "private": true,
+  "description": "За цветком — цветочная мастерская в Перми",
+  "scripts": {
+    "start": "node server.cjs",
+    "test": "node --test tests/admin-flow.cjs"
+  }
+}

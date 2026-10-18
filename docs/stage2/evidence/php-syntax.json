@@ -1,0 +1,12 @@
+{
+  "php": "8.3.33 WASM",
+  "files": [
+    "backend/orders/config.example.php",
+    "backend/orders/lib/Notifications.php",
+    "backend/orders/lib/Owner.php",
+    "backend/orders/bin/notify.php",
+    "owner/orders.php",
+    "tests/orders-notifications.php"
+  ],
+  "parsed": true
+}

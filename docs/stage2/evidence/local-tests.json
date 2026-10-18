@@ -1,0 +1,8 @@
+{
+  "php": "8.3 WebAssembly",
+  "mysql": "8.0.46",
+  "worker": "PASS claim ready notification\nPASS overlapping cron cannot claim same lease\nPASS no customer phone in message\nPASS message contains totals\nPASS expired lease preserves identity and frozen text\nPASS sent tasks not sent again\nPASS VK temporary failure processed\nPASS temporary failure schedules backoff\nPASS immediate repeated cron waits for backoff\nPASS permanent VK failure retained for owner review\nPASS success persisted\nPASS repeat cron sends nothing after success\nPASS privacy SECRET_NAME\nPASS privacy SECRET_PHONE\nPASS privacy SECRET_ADDRESS\nPASS privacy SECRET_COMMENT\nPASS privacy SECRET_SUBJECT\nPASS time zone and items\nPASS DB unavailable fails closed\nPASS HTML output escaping\nPASS real VK response parser [false,0]\nPASS real VK response parser [\"oops\",200]\nPASS real VK response parser [\"{}\",200]\nPASS real VK response parser [\"{\\\"error\\\":{\\\"error_code\\\":6}}\",200]\nPASS real VK response parser [\"{\\\"error\\\":{\\\"error_code\\\":901}}\",200]\nPASS real VK response parser [\"{\\\"error\\\":{\\\"error_code\\\":5}}\",200]\nPASS real VK response parser [\"{\\\"response\\\":123}\",200]\nPASS real VK response parser [\"{\\\"response\\\":123}\",500]\n",
+  "owner": "anonymous, CSRF, origin, wrong password, login, full view, logout, brute force, DB outage passed",
+  "vkNetwork": "mock only; no VK messages sent",
+  "nativeFastCGI": false
+}

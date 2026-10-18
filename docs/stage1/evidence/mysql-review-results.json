@@ -1,0 +1,13 @@
+{
+  "mysqlVersion": "8.0.46",
+  "isolated": true,
+  "migration": "passed",
+  "engines": 4,
+  "queueFailureRollback": "all four tables empty",
+  "duplicateKey": "rejected",
+  "parallelRequests": 8,
+  "parallelWinners": 1,
+  "partialRecords": 0,
+  "php": "not executed by this SQL-level test",
+  "dataDirectory": "C:/Users/User/Desktop/Projects/.zt-orders-lab/run-1792172403045/data"
+}

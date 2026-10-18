@@ -1,0 +1,181 @@
+// Хранилище данных бота: клиенты (для проверки повторных заказов), вопросы
+// (пара «вопрос → user_id», без истории переписки) и сессии диалога (на
+// каком шаге сценария сейчас человек).
+//
+// Два режима, переключаются автоматически по наличию YC_S3_BUCKET:
+//   – ЛОКАЛЬНЫЕ ФАЙЛЫ (bot/data/*.json) – для VM/локальной разработки,
+//     где процесс работает постоянно и диск не исчезает между запросами.
+//   – Yandex Object Storage (S3-совместимое API) – ОБЯЗАТЕЛЬНО для Cloud
+//     Functions: там нет постоянного диска между вызовами функции, и без
+//     внешнего хранилища бот «забывал» бы, на каком шаге диалога находится
+//     собеседник, уже между двумя соседними сообщениями.
+//
+// Все функции асинхронные (даже локально-файловый режим — для единообразия
+// вызовов что на VM, что в Cloud Functions).
+
+const fs = require('fs');
+const crypto = require('crypto');
+const path = require('path');
+const config = require('./config');
+const objectStorage = require('./objectStorage');
+
+const USE_S3 = Boolean(config.s3.bucket);
+
+const DATA_DIR = path.join(__dirname, '..', 'data');
+if (!USE_S3 && !fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+
+async function readJson(name, fallback) {
+  if (USE_S3) {
+    return objectStorage.getJson(config.s3, name + '.json', fallback);
+  }
+  try {
+    return JSON.parse(fs.readFileSync(path.join(DATA_DIR, name + '.json'), 'utf8'));
+  } catch (e) {
+    if (e.code === 'ENOENT') return fallback;
+    throw e;
+  }
+}
+
+async function writeJson(name, data) {
+  if (USE_S3) {
+    if (!(await objectStorage.putJson(config.s3, name + '.json', data))) throw new Error('Не удалось сохранить ' + name);
+    return true;
+  }
+  const filePath = path.join(DATA_DIR, name + '.json');
+  const tmp = filePath + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf8');
+  fs.renameSync(tmp, filePath);
+  return true;
+}
+
+// – Повторные заказы: телефон (11 цифр, без форматирования) → дата первого обращения –
+async function checkAndRecordCustomer(phoneDigits) {
+  const customers = await readJson('customers', {});
+  const existing = customers[phoneDigits];
+  if (existing) {
+    return { isRepeat: true, firstSeen: existing.firstSeen };
+  }
+  customers[phoneDigits] = { firstSeen: new Date().toISOString() };
+  await writeJson('customers', customers);
+  return { isRepeat: false, firstSeen: null };
+}
+
+// – Вопросы: пара «вопрос → user_id автора» (+ имя и телефон, если знаем),
+// без истории переписки –
+async function saveQuestion(questionId, userId, questionText, userName, userPhone) {
+  const questions = await readJson('questions', {});
+  const existing = questions[questionId];
+  questions[questionId] = {
+    userId,
+    userName: userName || (existing && existing.userName) || '',
+    userPhone: userPhone || (existing && existing.userPhone) || '',
+    question: questionText,
+    answered: false,
+    createdAt: (existing && existing.createdAt) || new Date().toISOString()
+  };
+  await writeJson('questions', questions);
+}
+
+async function getQuestion(questionId) {
+  const questions = await readJson('questions', {});
+  return questions[questionId] || null;
+}
+
+async function markQuestionAnswered(questionId) {
+  const questions = await readJson('questions', {});
+  if (questions[questionId]) {
+    questions[questionId].answered = true;
+    await writeJson('questions', questions);
+  }
+}
+
+// – Заявки (для кнопки «Заявки» в меню бота владелицы): и заказы с сайта
+// (notify.sendLeadNotification), и вопросы покупателей в чате (bot.js,
+// forwardToOwner) — единой лентой, самые новые первыми. Список и так
+// приходит владелице сообщениями в чат Max (это его «журнал» по умолчанию),
+// этот файл — просто дополнительная возможность отфильтровать и полистать
+// только заявки, не листая всю переписку. Храним не больше LEADS_LIMIT
+// последних записей, чтобы файл не рос бесконечно.
+const LEADS_LIMIT = 500;
+
+async function saveLead(entry) {
+  const leads = await readJson('leads', []);
+  leads.push(Object.assign({ createdAt: new Date().toISOString() }, entry));
+  while (leads.length > LEADS_LIMIT) leads.shift();
+  await writeJson('leads', leads);
+}
+
+// offset/limit — пагинация с конца списка (самые новые первыми).
+async function getLeadsPage(offset, limit) {
+  const leads = await readJson('leads', []);
+  const newestFirst = leads.slice().reverse();
+  const page = newestFirst.slice(offset || 0, (offset || 0) + (limit || 10));
+  return { items: page, total: newestFirst.length };
+}
+
+// – Состояние диалога с конкретным пользователем (шаг сценария, что уже собрано) –
+async function getSession(userId) {
+  const sessions = await readJson('sessions', {});
+  return sessions[userId] || { step: 'idle' };
+}
+
+async function setSession(userId, session) {
+  const sessions = await readJson('sessions', {});
+  sessions[userId] = session;
+  await writeJson('sessions', sessions);
+}
+
+async function clearSession(userId) {
+  const sessions = await readJson('sessions', {});
+  delete sessions[userId];
+  await writeJson('sessions', sessions);
+}
+
+// Stable message/callback IDs are claimed atomically and retained across restarts.
+// Legacy events without IDs use the existing 15-minute fallback below.
+const DEDUP_WINDOW_MS = 15 * 60 * 1000;
+
+async function wasRecentlyProcessed(key, stableId = false) {
+  if (stableId) {
+    const hash = crypto.createHash('sha256').update(key).digest('hex');
+    if (USE_S3) return !(await objectStorage.createJsonOnce(config.s3, 'processed_updates/' + hash + '.json', { claimedAt: new Date().toISOString() }));
+    const directory = path.join(DATA_DIR, 'processed_updates');
+    fs.mkdirSync(directory, { recursive: true });
+    try {
+      fs.writeFileSync(path.join(directory, hash + '.json'), JSON.stringify({ claimedAt: new Date().toISOString() }), { flag: 'wx' });
+      return false;
+    } catch (error) {
+      if (error.code === 'EEXIST') return true;
+      throw error;
+    }
+  }
+  const seen = await readJson('recent_updates', {});
+  const now = Date.now();
+  for (const k of Object.keys(seen)) {
+    if (now - seen[k] > DEDUP_WINDOW_MS) delete seen[k];
+  }
+  if (seen[key] !== undefined) {
+    return true;
+  }
+  seen[key] = now;
+  await writeJson('recent_updates', seen);
+  return false;
+}
+
+module.exports = {
+  checkAndRecordCustomer,
+  saveQuestion,
+  getQuestion,
+  markQuestionAnswered,
+  saveLead,
+  getLeadsPage,
+  getSession,
+  setSession,
+  clearSession,
+  wasRecentlyProcessed,
+  hasProcessedEvent: async (id) => Boolean(await readJson('processed_updates/' + crypto.createHash('sha256').update(id).digest('hex'), null)),
+  markProcessedEvent: async (id) => {
+    if (!USE_S3) fs.mkdirSync(path.join(DATA_DIR, 'processed_updates'), { recursive: true });
+    await writeJson('processed_updates/' + crypto.createHash('sha256').update(id).digest('hex'), { processedAt: new Date().toISOString() });
+  }
+};

@@ -1,0 +1,30 @@
+import fs from 'node:fs';import path from 'node:path';import {PHP} from '@php-wasm/universal';import {loadNodeRuntime,withNetworking} from '@php-wasm/node';
+const dsn=process.env.ZT_TEST_MYSQL_DSN||'',m=dsn.match(/^mysql:host=127\.0\.0\.1;port=([0-9]+);dbname=zt_test_orders_php_review;charset=utf8mb4$/);
+if(!m)throw Error('Only isolated schema accepted');
+const options=await withNetworking({processId:process.pid}),server=options.outboundNetworkProxyServer,sockets=new Set();
+server.on('connection',s=>{sockets.add(s);s.on('close',()=>sockets.delete(s))});
+if(server.address().address!=='127.0.0.1')throw Error('Loopback required');
+const original=options.websocket.url;options.websocket.url=(protocol,host,port)=>{if(host!=='127.0.0.1'||+port!==+m[1])throw Error('External network denied');return original(protocol,host,port)};
+let php;
+try{
+ php=new PHP(await loadNodeRuntime('8.3',{emscriptenOptions:options}));
+ const root=path.resolve(import.meta.dirname,'../aura-tsvetov/za tsvetkom');
+ const put=(target,source)=>{php.mkdirTree(path.posix.dirname(target));php.writeFile(target,fs.readFileSync(path.join(root,source)))};
+ for(const f of fs.readdirSync(path.join(root,'backend/orders/lib')))put('/private/lib/'+f,'backend/orders/lib/'+f);
+ for(const f of fs.readdirSync(path.join(root,'backend/orders/migrations')))put('/migrations/'+f,'backend/orders/migrations/'+f);
+ for(const f of ['orders-validation.php','simplified-mysql.php'])put('/project/tests/'+f,'tests/'+f);
+ put('/project/backend/orders/lib/Validation.php','backend/orders/lib/Validation.php');
+ put('/public/api/v1/orders.php','api/v1/orders.php');put('/public/owner/orders.php','owner/orders.php');
+ const lintFiles=['backend/orders/config.example.php','backend/orders/bin/notify.php','api/v1/orders.php','owner/orders.php',...fs.readdirSync(path.join(root,'backend/orders/lib')).map(f=>'backend/orders/lib/'+f)];
+ for(const f of lintFiles){const r=await php.run({code:'<?php token_get_all(base64_decode("'+fs.readFileSync(path.join(root,f)).toString('base64')+'"),TOKEN_PARSE);'});if(r.exitCode||r.errors)throw Error(f+r.errors);}
+ let r=await php.run({scriptPath:'/project/tests/orders-validation.php'});if(r.errors||r.exitCode)throw Error(r.errors);console.log(r.text);
+ const validation=r.text;
+ const lab={dsn,user:process.env.ZT_TEST_MYSQL_USER,password:process.env.ZT_TEST_MYSQL_PASSWORD};
+ php.writeFile('/lab.json',JSON.stringify(lab));
+ r=await php.run({code:'<?php $lab=json_decode(file_get_contents("/lab.json"),true);require "/project/tests/simplified-mysql.php";'});console.log(r.text);if(r.errors||r.exitCode)throw Error(r.errors);
+ const database=r.text;
+ const {httpReview}=await import('./simplified-http.mjs');
+ const review=await httpReview(php,{root,lab});
+ fs.mkdirSync(path.join(root,'docs/simplified/evidence'),{recursive:true});
+ fs.writeFileSync(path.join(root,'docs/simplified/evidence/php-mysql.json'),JSON.stringify({php:'8.3.33 WASM',mysql:'8.0.46 isolated',syntaxFiles:lintFiles.length,validation,database,...review,externalNetwork:false,nativeFastCGI:false},null,2));
+}finally{if(php)php.exit();for(const s of sockets)s.destroy();await new Promise(r=>server.close(r));}

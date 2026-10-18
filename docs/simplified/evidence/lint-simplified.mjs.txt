@@ -1,0 +1,12 @@
+import fs from 'node:fs';import path from 'node:path';import {PHP} from '@php-wasm/universal';import {loadNodeRuntime} from '@php-wasm/node';
+const php=new PHP(await loadNodeRuntime('8.3',{emscriptenOptions:{processId:process.pid}}));
+try{
+ const root=path.resolve(import.meta.dirname,'../aura-tsvetov/za tsvetkom');
+ const files=['backend/orders/config.example.php','backend/orders/bin/notify.php','api/v1/orders.php','owner/orders.php','tests/orders-validation.php','tests/simplified-mysql.php',...fs.readdirSync(path.join(root,'backend/orders/lib')).map(f=>'backend/orders/lib/'+f)];
+ for(const f of files){const target='/project/'+f;php.mkdirTree(path.posix.dirname(target));php.writeFile(target,fs.readFileSync(path.join(root,f)));const r=await php.run({code:'<?php token_get_all(base64_decode("'+fs.readFileSync(path.join(root,f)).toString('base64')+'"),TOKEN_PARSE);'});if(r.exitCode||r.errors)throw Error(f+r.errors);}
+ let r=await php.run({scriptPath:'/project/tests/orders-validation.php'});if(r.errors||r.exitCode)throw Error(r.errors);console.log(r.text);
+ const validation=r.text;
+ r=await php.run({code:'<?php require "/project/backend/orders/lib/YandexRelay.php";$p=["notificationId"=>"1","randomId"=>123];foreach([[false,0,false],["broken",200,false],["{}",200,false],[json_encode(["ok"=>true,"delivered"=>true,"notificationId"=>"1","randomId"=>123,"messageId"=>42]),200,true],[json_encode(["ok"=>true,"delivered"=>true,"notificationId"=>"2","randomId"=>123,"messageId"=>42]),200,false]] as [$raw,$http,$ok]){if(ZTOrders\\YandexRelaySender::interpret($raw,$http,$p)["ok"]!==$ok)throw new RuntimeException("relay parser");}foreach(["http://functions.yandexcloud.net/test","https://evil.test/test","https://functions.yandexcloud.net/test?secret=x"] as $url){try{new ZTOrders\\YandexRelaySender(["url"=>$url,"secret"=>str_repeat("a",64)]);throw new LogicException("unsafe URL accepted");}catch(RuntimeException $e){if($e instanceof LogicException)throw $e;}}echo "PASS relay response identity, malformed response, HTTP error and URL restrictions";'});
+ if(r.errors||r.exitCode)throw Error(r.errors);console.log(r.text);
+ fs.mkdirSync(path.join(root,'docs/simplified/evidence'),{recursive:true});fs.writeFileSync(path.join(root,'docs/simplified/evidence/php-syntax-validation.json'),JSON.stringify({php:'8.3.33 WASM',syntaxFiles:files,validation,relay:r.text,network:false},null,2));
+}finally{php.exit();}

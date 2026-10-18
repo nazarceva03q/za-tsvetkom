@@ -1,0 +1,31 @@
+{
+  "yaml": "valid",
+  "files": [
+    "index.html",
+    "legal.html",
+    "app.js",
+    "refinement.js",
+    "details.js",
+    "catalog-live.js",
+    "catalog-polish.js",
+    "compact-cards.js",
+    "motion.js",
+    "catalog-sync.js",
+    "checkout.js",
+    "checkout-client.js",
+    "products-data.js",
+    "balloons-data.js",
+    "daily-bouquets.js",
+    "styles.css",
+    "refinement.css",
+    "details.css",
+    "catalog-live.css",
+    "catalog-polish.css",
+    "compact-cards.css",
+    "photo-update.css",
+    "robots.txt"
+  ],
+  "trigger": "manual",
+  "network": false,
+  "pythonExecution": false
+}

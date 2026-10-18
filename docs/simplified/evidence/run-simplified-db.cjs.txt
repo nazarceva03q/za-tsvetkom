@@ -1,0 +1,66 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process'),net=require('node:net'),crypto=require('node:crypto'),assert=require('node:assert/strict');
+const lab=__dirname,project=path.resolve(lab,'../aura-tsvetov/za tsvetkom');
+const home=path.join(lab,'mysql-8.0.46-winx64'),bin=n=>path.join(home,'bin',n+'.exe');
+const run=path.join(lab,'run-'+Date.now());fs.mkdirSync(run);
+const data=path.join(run,'data');fs.mkdirSync(data);
+const slash=p=>p.replaceAll('\\','/');
+const password=crypto.randomBytes(32).toString('hex'),schema='zt_test_orders_review';
+let child,client,port;
+function invoke(name,args,input=''){
+ const r=cp.spawnSync(bin(name),args,{input,encoding:'utf8',windowsHide:true,timeout:180000,maxBuffer:4*1024*1024});
+ if(r.status!==0)throw Error(name+' failed: '+JSON.stringify({status:r.status,signal:r.signal,error:r.error?.message,stderr:r.stderr}));return r.stdout.trim();
+}
+function query(sql){return invoke('mysql',['--defaults-file='+client,'--connect-timeout=2','--ssl-mode=DISABLED','--get-server-public-key','--batch','--raw','--skip-column-names'],sql)}
+async function connected(){for(let i=0;i<60;i++){if(child.exitCode!==null)throw Error('Lab MySQL exited');try{return query('SELECT 1;')}catch(e){if(i===59)console.error(e.message)}await new Promise(r=>setTimeout(r,500))}throw Error('Local startup timeout')}
+function asyncQuery(sql){return new Promise(resolve=>{const p=cp.spawn(bin('mysql'),['--defaults-file='+client,'--connect-timeout=2','--ssl-mode=DISABLED','--get-server-public-key','--batch','--raw','--skip-column-names'],{windowsHide:true});let out='',err='';p.stdout.on('data',d=>out+=d);p.stderr.on('data',d=>err+=d);p.on('close',code=>resolve({code,out,err}));p.stdin.end(sql)})}
+function transaction(id,key,number){
+ return 'USE '+schema+'; START TRANSACTION;'+
+ "INSERT INTO zt_orders (id,order_number,idempotency_key,request_hash,kind,subject,customer_name,phone,contact_channel,delivery_address,comment,consent_version,consent_text_sha256,consent_at,total_kopecks) VALUES ('"+id+"','"+number+"','"+key+"','"+'a'.repeat(64)+"','order','synthetic','LOCAL TEST','79990000000','Телефон','','','test','"+'b'.repeat(64)+"',UTC_TIMESTAMP(6),500000);"+
+ "INSERT INTO zt_order_rate_limits (bucket_key,attempts,expires_at) VALUES ('"+id.padEnd(64,'0')+"',1,UTC_TIMESTAMP());"+
+ "INSERT INTO zt_order_items (order_id,product_id,product_name,quantity,unit_price_kopecks,line_total_kopecks,made_to_order,product_snapshot) VALUES ('"+id+"','test-product','Synthetic balloons',2,250000,500000,1,'{}');"+
+ "INSERT INTO zt_notification_queue (order_id,event_type,channel,status,attempts,next_attempt_at) VALUES ('"+id+"','order.created','vk_owner','pending',0,UTC_TIMESTAMP(6));COMMIT;";
+}
+(async()=>{
+ const reservation=net.createServer();await new Promise(r=>reservation.listen(0,'127.0.0.1',r));port=reservation.address().port;await new Promise(r=>reservation.close(r));
+ console.log('Initializing isolated MySQL 8.0.46; only synthetic records');
+ invoke('mysqld',['--no-defaults','--initialize-insecure','--basedir='+home,'--datadir='+data]);
+ const init=path.join(run,'init.sql');fs.writeFileSync(init,"ALTER USER 'root'@'localhost' IDENTIFIED BY '"+password+"';\n");
+ client=path.join(run,'client.cnf');
+ fs.writeFileSync(client,'[client]\nhost=127.0.0.1\nprotocol=TCP\nport='+port+'\nuser=zt_lab\npassword='+password+'\ndefault-character-set=utf8mb4\n');
+ fs.appendFileSync(init,"CREATE USER 'zt_lab'@'127.0.0.1' IDENTIFIED BY 'PASSWORD_PLACEHOLDER';\nGRANT ALL PRIVILEGES ON *.* TO 'zt_lab'@'127.0.0.1';\n".replace('PASSWORD_PLACEHOLDER',password));
+ const log=fs.openSync(path.join(run,'mysqld.log'),'a');
+ child=cp.spawn(bin('mysqld'),['--no-defaults','--basedir='+home,'--datadir='+data,'--bind-address=127.0.0.1','--port='+port,'--mysqlx=0','--skip-name-resolve','--init-file='+init,'--console'],{windowsHide:true,stdio:['ignore',log,log]});
+ try{
+  await connected();
+  const datadir=query('SELECT @@datadir;').replaceAll('\\','/').replace(/\/$/,'').toLowerCase();assert.equal(datadir,slash(data).toLowerCase());
+  assert.match(query('SELECT VERSION();'),/^8\.0\.46/);
+  query('CREATE DATABASE '+schema+' CHARACTER SET utf8mb4;');
+  const sql=fs.readFileSync(path.join(project,'backend/orders/migrations/001-orders.sql'),'utf8');
+  query('USE '+schema+';'+sql);
+  assert.equal(query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='"+schema+"' AND engine='InnoDB';"),'4');
+  query('USE '+schema+';ALTER TABLE zt_notification_queue ADD CONSTRAINT ck_lab_fail CHECK(attempts>0);');
+  let failed=false;try{query(transaction('1'.repeat(32),'1'.repeat(64),'ZT-1111111111111111'))}catch(e){failed=/3819/.test(e.message)}
+  assert.ok(failed,'injected failure must reject transaction');
+  for(const t of ['zt_orders','zt_order_items','zt_notification_queue','zt_order_rate_limits'])assert.equal(query('USE '+schema+';SELECT COUNT(*) FROM '+t+';'),'0');
+  query('USE '+schema+';ALTER TABLE zt_notification_queue DROP CHECK ck_lab_fail;');
+  query(transaction('2'.repeat(32),'2'.repeat(64),'ZT-2222222222222222'));
+  let duplicate=false;try{query(transaction('3'.repeat(32),'2'.repeat(64),'ZT-3333333333333333'))}catch(e){duplicate=/1062/.test(e.message)}
+  assert.ok(duplicate,'same key must fail unique constraint');
+  const races=await Promise.all(Array.from({length:8},(_,i)=>asyncQuery(transaction((i+10).toString(16).padStart(32,'0'),'4'.repeat(64),'ZT-'+(i+10).toString(16).toUpperCase().padStart(16,'0')))));
+  assert.equal(races.filter(x=>x.code===0).length,1);
+  assert.equal(races.filter(x=>x.code!==0&&/1062/.test(x.err)).length,7);
+  for(const t of ['zt_orders','zt_order_items','zt_notification_queue','zt_order_rate_limits'])assert.equal(query('USE '+schema+';SELECT COUNT(*) FROM '+t+';'),'2');
+  assert.equal(query("USE "+schema+";SELECT CONCAT(quantity,':',unit_price_kopecks,':',line_total_kopecks) FROM zt_order_items LIMIT 1;"),'2:250000:500000');
+  query('CREATE DATABASE zt_test_orders_php_review CHARACTER SET utf8mb4;');
+  const integrated=cp.spawnSync(process.execPath,[path.join(lab,'run-simplified.mjs')],{encoding:'utf8',windowsHide:true,timeout:240000,env:{...process.env,ZT_TEST_MYSQL_DSN:'mysql:host=127.0.0.1;port='+port+';dbname=zt_test_orders_php_review;charset=utf8mb4',ZT_TEST_MYSQL_USER:'zt_lab',ZT_TEST_MYSQL_PASSWORD:password}});
+  console.log(integrated.stdout);
+  if(integrated.status!==0)throw Error(integrated.stderr||'PHP/MySQL integrated test failed');
+  const report={mysqlVersion:'8.0.46',isolated:true,migration:'passed',engines:4,queueFailureRollback:'all four tables empty',duplicateKey:'rejected',parallelRequests:8,parallelWinners:1,partialRecords:0,php:'not executed by this SQL-level test',dataDirectory:slash(data)};
+  fs.writeFileSync(path.join(lab,'mysql-simplified-results.json'),JSON.stringify(report,null,2)+'\n');
+  console.log(JSON.stringify(report,null,2));
+ }finally{
+  if(child&&child.exitCode===null){try{invoke('mysqladmin',['--defaults-file='+client,'shutdown'])}catch{child.kill()};await new Promise(resolve=>child.exitCode!==null?resolve():child.once('exit',resolve))}
+  console.log('Isolated MySQL stopped; no Windows service registered');
+ }
+})().catch(e=>{console.error(e.message);process.exitCode=1});

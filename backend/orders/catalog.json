@@ -1,0 +1,976 @@
+{
+  "schema": 1,
+  "sourceFiles": {
+    "products-data.js": "bf7c42bb095b2bf71c51060b09b71266758017b451024116ec35721b34acdfb0",
+    "balloons-data.js": "b940625a458a63b9358fba7bcaadc7070a24e617b138eac7c2d515ae64681a0f",
+    "daily-bouquets.js": "9f42afe33c86b38d04f926c889f791fd843e0ef9531794f22d87d753b7c498da"
+  },
+  "consentVersion": "2026-10-orders-v1",
+  "consentTextSha256": "35daa6b38f3322d05da8622c0695103a816c8f7338ae03b30d694e8170ebdd81",
+  "products": [
+    {
+      "id": "product-ecuador-101",
+      "slug": "ecuador-101",
+      "name": "Букет из 101 розы Эквадор",
+      "price": 30300,
+      "category": "Розы",
+      "description": "101 роза Эквадор · высота 60 см",
+      "note": "",
+      "stock": null,
+      "tags": "101 роза эквадор · высота 60 см",
+      "badge": "",
+      "images": [
+        "assets/products/ecuador-101-1.jpg"
+      ],
+      "priceKopecks": 3030000
+    },
+    {
+      "id": "product-french-eucalyptus",
+      "slug": "french-eucalyptus",
+      "name": "Букет из французских роз с эвкалиптом",
+      "price": 3750,
+      "category": "Розы",
+      "description": "9 французских роз · эвкалипт · оформление",
+      "note": "",
+      "stock": null,
+      "tags": "9 французских роз · эвкалипт · оформление",
+      "badge": "",
+      "images": [
+        "assets/products/french-eucalyptus-1.jpg"
+      ],
+      "priceKopecks": 375000
+    },
+    {
+      "id": "product-dianthus",
+      "slug": "dianthus",
+      "name": "Букет с диантусами и хризантемой",
+      "price": 2550,
+      "category": "Сборные букеты",
+      "description": "5 диантусов (гвоздик) · 3 хризантемы Алтай · 5 веток рускуса · оформление",
+      "note": "",
+      "stock": null,
+      "tags": "5 диантусов (гвоздик) · 3 хризантемы алтай · 5 веток рускуса · оформление",
+      "badge": "",
+      "images": [
+        "assets/products/dianthus-1.jpg"
+      ],
+      "priceKopecks": 255000
+    },
+    {
+      "id": "product-sunflowers",
+      "slug": "sunflowers",
+      "name": "Букет из подсолнухов",
+      "price": 1750,
+      "category": "Монобукеты",
+      "description": "3 подсолнуха · эвкалипт · оформление",
+      "note": "",
+      "stock": null,
+      "tags": "3 подсолнуха · эвкалипт · оформление",
+      "badge": "",
+      "images": [
+        "assets/products/sunflowers-1.jpg"
+      ],
+      "priceKopecks": 175000
+    },
+    {
+      "id": "product-bridal-eustoma",
+      "slug": "bridal-eustoma",
+      "name": "Свадебный букет из эустомы",
+      "price": 3500,
+      "category": "Свадебные букеты",
+      "description": "Эустома · эвкалипт",
+      "note": "Бутоньерка для жениха включена. Стоимость зависит от сезона и цены цветка на выбранную дату",
+      "stock": null,
+      "tags": "эустома · эвкалипт",
+      "badge": "",
+      "images": [
+        "assets/products/bridal-eustoma-1.jpg",
+        "assets/products/bridal-eustoma-2.jpg"
+      ],
+      "priceKopecks": 350000
+    },
+    {
+      "id": "product-kenya-101",
+      "slug": "kenya-101",
+      "name": "Букет из 101 кенийской розы",
+      "price": 8200,
+      "category": "Розы",
+      "description": "101 роза Кения · высота 40 см · оформление",
+      "note": "",
+      "stock": null,
+      "tags": "101 роза кения · высота 40 см · оформление",
+      "badge": "",
+      "images": [
+        "assets/products/kenya-101-1.jpg",
+        "assets/products/kenya-101-2.jpg"
+      ],
+      "priceKopecks": 820000
+    },
+    {
+      "id": "product-spray-15",
+      "slug": "spray-15",
+      "name": "Букет из 15 кустовых роз",
+      "price": 7100,
+      "category": "Розы",
+      "description": "15 кустовых роз · оформление",
+      "note": "",
+      "stock": null,
+      "tags": "15 кустовых роз · оформление",
+      "badge": "",
+      "images": [
+        "assets/products/spray-15-1.jpg",
+        "assets/products/spray-15-2.jpg",
+        "assets/products/spray-15-3.jpg"
+      ],
+      "priceKopecks": 710000
+    },
+    {
+      "id": "product-gypsophila-9",
+      "slug": "gypsophila-9",
+      "name": "Букет из гипсофилы",
+      "price": 2550,
+      "category": "Монобукеты",
+      "description": "9 веток гипсофилы · оформление в крафт",
+      "note": "",
+      "stock": null,
+      "tags": "9 веток гипсофилы · оформление в крафт",
+      "badge": "",
+      "images": [
+        "assets/products/gypsophila-9-1.jpg"
+      ],
+      "priceKopecks": 255000
+    },
+    {
+      "id": "product-eustoma-composition",
+      "slug": "eustoma-composition",
+      "name": "Букет с эустомой в сумочке",
+      "price": 1750,
+      "category": "Композиции",
+      "description": "Эустома · хризантема · эвкалипт",
+      "note": "",
+      "stock": null,
+      "tags": "эустома · хризантема · эвкалипт",
+      "badge": "",
+      "images": [
+        "assets/products/eustoma-composition-1.jpg",
+        "assets/products/eustoma-composition-2.jpg"
+      ],
+      "priceKopecks": 175000
+    },
+    {
+      "id": "product-french-5",
+      "slug": "french-5",
+      "name": "Букет из 5 французских роз",
+      "price": 2100,
+      "category": "Розы",
+      "description": "5 французских роз · оформление",
+      "note": "",
+      "stock": null,
+      "tags": "5 французских роз · оформление",
+      "badge": "",
+      "images": [
+        "assets/products/french-5-1.jpg",
+        "assets/products/french-5-2.jpg",
+        "assets/products/french-5-3.jpg"
+      ],
+      "priceKopecks": 210000
+    },
+    {
+      "id": "product-bridal-gypsophila",
+      "slug": "bridal-gypsophila",
+      "name": "Букет невесты из гипсофилы",
+      "price": 3000,
+      "category": "Свадебные букеты",
+      "description": "Гипсофила",
+      "note": "Бутоньерка для жениха включена",
+      "stock": null,
+      "tags": "гипсофила",
+      "badge": "",
+      "images": [
+        "assets/products/bridal-gypsophila-1.jpg"
+      ],
+      "priceKopecks": 300000
+    },
+    {
+      "id": "product-hydrangeas",
+      "slug": "hydrangeas",
+      "name": "Букет из гортензий",
+      "price": 2850,
+      "category": "Монобукеты",
+      "description": "3 гортензии · эвкалипт · оформление",
+      "note": "",
+      "stock": null,
+      "tags": "3 гортензии · эвкалипт · оформление",
+      "badge": "",
+      "images": [
+        "assets/products/hydrangeas-1.jpg",
+        "assets/products/hydrangeas-2.jpg"
+      ],
+      "priceKopecks": 285000
+    },
+    {
+      "id": "product-french-7",
+      "slug": "french-7",
+      "name": "Букет из 7 французских роз",
+      "price": 3000,
+      "category": "Розы",
+      "description": "7 французских роз · писташ · оформление",
+      "note": "",
+      "stock": null,
+      "tags": "7 французских роз · писташ · оформление",
+      "badge": "",
+      "images": [
+        "assets/products/french-7-1.jpg",
+        "assets/products/french-7-2.jpg",
+        "assets/products/french-7-3.jpg"
+      ],
+      "priceKopecks": 300000
+    },
+    {
+      "id": "product-roses-chrysanthemums",
+      "slug": "roses-chrysanthemums",
+      "name": "Букет из роз и хризантем",
+      "price": 2400,
+      "category": "Сборные букеты",
+      "description": "3 розы Эквадор · 2 хризантемы · эвкалипт · оформление",
+      "note": "",
+      "stock": null,
+      "tags": "3 розы эквадор · 2 хризантемы · эвкалипт · оформление",
+      "badge": "",
+      "images": [
+        "assets/products/roses-chrysanthemums-1.jpg",
+        "assets/products/roses-chrysanthemums-2.jpg",
+        "assets/products/roses-chrysanthemums-3.jpg"
+      ],
+      "priceKopecks": 240000
+    },
+    {
+      "id": "product-lilac",
+      "slug": "lilac",
+      "name": "Букет из сирени",
+      "price": 2100,
+      "category": "Монобукеты",
+      "description": "7 веток сирени · оформление",
+      "note": "Под заказ. Сезон сирени: апрель–май",
+      "stock": null,
+      "tags": "7 веток сирени · оформление",
+      "badge": "Под заказ",
+      "images": [
+        "assets/products/lilac-1.jpg",
+        "assets/products/lilac-2.jpg"
+      ],
+      "priceKopecks": 210000
+    },
+    {
+      "id": "product-tiffany",
+      "slug": "tiffany",
+      "name": "Букет в сумочке «Тиффани»",
+      "price": 1600,
+      "category": "Композиции",
+      "description": "Окрашенная хризантема · сумочка",
+      "note": "",
+      "stock": null,
+      "tags": "окрашенная хризантема · сумочка",
+      "badge": "",
+      "images": [
+        "assets/products/tiffany-1.jpg",
+        "assets/products/tiffany-2.jpg",
+        "assets/products/tiffany-3.jpg"
+      ],
+      "priceKopecks": 160000
+    },
+    {
+      "id": "product-alstroemeria",
+      "slug": "alstroemeria",
+      "name": "Букет из альстромерий",
+      "price": 2510,
+      "category": "Монобукеты",
+      "description": "9 веток альстромерии · оформление",
+      "note": "",
+      "stock": null,
+      "tags": "9 веток альстромерии · оформление",
+      "badge": "",
+      "images": [
+        "assets/products/alstroemeria-1.jpg",
+        "assets/products/alstroemeria-2.jpg"
+      ],
+      "priceKopecks": 251000
+    },
+    {
+      "id": "product-kenya-51",
+      "slug": "kenya-51",
+      "name": "Букет из 51 кенийской розы",
+      "price": 4450,
+      "category": "Розы",
+      "description": "51 роза Кения · высота 40 см · оформление",
+      "note": "",
+      "stock": null,
+      "tags": "51 роза кения · высота 40 см · оформление",
+      "badge": "",
+      "images": [
+        "assets/products/kenya-51-1.jpg",
+        "assets/products/kenya-51-2.jpg"
+      ],
+      "priceKopecks": 445000
+    },
+    {
+      "id": "product-rose-handbag",
+      "slug": "rose-handbag",
+      "name": "Букет из роз в сумочке",
+      "price": 1600,
+      "category": "Композиции",
+      "description": "5 российских роз · эвкалипт · сумочка",
+      "note": "",
+      "stock": null,
+      "tags": "5 российских роз · эвкалипт · сумочка",
+      "badge": "",
+      "images": [
+        "assets/products/rose-handbag-1.jpg",
+        "assets/products/rose-handbag-2.jpg",
+        "assets/products/rose-handbag-3.jpg"
+      ],
+      "priceKopecks": 160000
+    },
+    {
+      "id": "product-kenya-basket",
+      "slug": "kenya-basket",
+      "name": "Букет из кенийских роз в корзине",
+      "price": 9600,
+      "category": "Композиции",
+      "description": "101 роза Кения микс · высота 40 см · корзина",
+      "note": "",
+      "stock": null,
+      "tags": "101 роза кения микс · высота 40 см · корзина",
+      "badge": "",
+      "images": [
+        "assets/products/kenya-basket-1.jpg",
+        "assets/products/kenya-basket-2.jpg",
+        "assets/products/kenya-basket-3.jpg",
+        "assets/products/kenya-basket-4.jpg"
+      ],
+      "priceKopecks": 960000
+    },
+    {
+      "id": "product-daisy-handbag",
+      "slug": "daisy-handbag",
+      "name": "Букет из ромашковых хризантем в сумочке",
+      "price": 1600,
+      "category": "Композиции",
+      "description": "Ромашковая хризантема · эвкалипт · сумочка",
+      "note": "",
+      "stock": null,
+      "tags": "ромашковая хризантема · эвкалипт · сумочка",
+      "badge": "",
+      "images": [
+        "assets/products/daisy-handbag-1.jpg"
+      ],
+      "priceKopecks": 160000
+    },
+    {
+      "id": "balloon-bouquet-violet-wishes",
+      "slug": "balloon-bouquet-violet-wishes",
+      "name": "Фиолетовые сердца с пожеланиями",
+      "price": 2500,
+      "description": "Фольгированные сердца · Упаковка · Ленты",
+      "category": "Букеты из шаров",
+      "madeToOrder": true,
+      "stock": null,
+      "tags": "букет из шаров",
+      "note": "Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую",
+      "images": [
+        "assets/balloon-bouquets/violet-wishes-1.png?v=solid-ece8e2-edge3",
+        "assets/balloon-bouquets/violet-wishes-2.png?v=solid-ece8e2-edge3"
+      ],
+      "priceKopecks": 250000
+    },
+    {
+      "id": "balloon-bouquet-lavender-cream",
+      "slug": "balloon-bouquet-lavender-cream",
+      "name": "Лавандовые сердца в кремовой упаковке",
+      "price": 2500,
+      "description": "Фольгированные сердца · Упаковка · Ленты",
+      "category": "Букеты из шаров",
+      "madeToOrder": true,
+      "stock": null,
+      "tags": "букет из шаров",
+      "note": "Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую",
+      "images": [
+        "assets/balloon-bouquets/lavender-cream-1.png?v=solid-ece8e2-edge3",
+        "assets/balloon-bouquets/lavender-cream-2.png?v=solid-ece8e2-edge3"
+      ],
+      "priceKopecks": 250000
+    },
+    {
+      "id": "balloon-bouquet-red-white-wishes",
+      "slug": "balloon-bouquet-red-white-wishes",
+      "name": "Красные сердца с пожеланиями",
+      "price": 2500,
+      "description": "Фольгированные сердца · Упаковка · Ленты",
+      "category": "Букеты из шаров",
+      "madeToOrder": true,
+      "stock": null,
+      "tags": "букет из шаров",
+      "note": "Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую",
+      "images": [
+        "assets/balloon-bouquets/red-white-wishes-1.png?v=solid-ece8e2-edge3"
+      ],
+      "priceKopecks": 250000
+    },
+    {
+      "id": "balloon-bouquet-red-white-birthday",
+      "slug": "balloon-bouquet-red-white-birthday",
+      "name": "Красные сердца в белой упаковке",
+      "price": 2500,
+      "description": "Фольгированные сердца · Упаковка · Ленты",
+      "category": "Букеты из шаров",
+      "madeToOrder": true,
+      "stock": null,
+      "tags": "букет из шаров",
+      "note": "Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую",
+      "images": [
+        "assets/balloon-bouquets/red-white-birthday-1.png?v=solid-ece8e2-edge3"
+      ],
+      "priceKopecks": 250000
+    },
+    {
+      "id": "balloon-bouquet-fuchsia-mother",
+      "slug": "balloon-bouquet-fuchsia-mother",
+      "name": "Букет сердец для мамы",
+      "price": 2500,
+      "description": "Фольгированные сердца · Упаковка · Ленты",
+      "category": "Букеты из шаров",
+      "madeToOrder": true,
+      "stock": null,
+      "tags": "букет из шаров",
+      "note": "Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую",
+      "images": [
+        "assets/balloon-bouquets/fuchsia-mother-1.png?v=solid-ece8e2-edge3"
+      ],
+      "priceKopecks": 250000
+    },
+    {
+      "id": "balloon-bouquet-gold-cream-hearts",
+      "slug": "balloon-bouquet-gold-cream-hearts",
+      "name": "Золотые сердца в кремовой упаковке",
+      "price": 2500,
+      "description": "Фольгированные сердца · Упаковка · Ленты",
+      "category": "Букеты из шаров",
+      "madeToOrder": true,
+      "stock": null,
+      "tags": "букет из шаров",
+      "note": "Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую",
+      "images": [
+        "assets/balloon-bouquets/gold-cream-hearts-1-centered.png?v=20261006"
+      ],
+      "priceKopecks": 250000
+    },
+    {
+      "id": "balloon-bouquet-red-cream-family",
+      "slug": "balloon-bouquet-red-cream-family",
+      "name": "Красные сердца для бабушки",
+      "price": 2500,
+      "description": "Фольгированные сердца · Упаковка · Ленты",
+      "category": "Букеты из шаров",
+      "madeToOrder": true,
+      "stock": null,
+      "tags": "букет из шаров",
+      "note": "Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую",
+      "images": [
+        "assets/balloon-bouquets/red-cream-family-1-centered.png?v=20261006"
+      ],
+      "priceKopecks": 250000
+    },
+    {
+      "id": "balloon-bouquet-blue-hearts",
+      "slug": "balloon-bouquet-blue-hearts",
+      "name": "Букет из синих сердец",
+      "price": 2500,
+      "description": "Фольгированные сердца · Упаковка · Ленты",
+      "category": "Букеты из шаров",
+      "madeToOrder": true,
+      "stock": null,
+      "tags": "букет из шаров",
+      "note": "Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую",
+      "images": [
+        "assets/balloon-bouquets/blue-hearts-1.png?v=solid-ece8e2-edge3"
+      ],
+      "priceKopecks": 250000
+    },
+    {
+      "id": "balloon-bouquet-lilac",
+      "slug": "balloon-bouquet-lilac",
+      "name": "Букет из сиреневых сердец",
+      "price": 2500,
+      "description": "Фольгированные сердца · Упаковка · Ленты",
+      "category": "Букеты из шаров",
+      "madeToOrder": true,
+      "stock": null,
+      "tags": "букет из шаров",
+      "note": "Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую",
+      "images": [
+        "assets/balloon-bouquets/lilac-1.png?v=solid-ece8e2-edge3",
+        "assets/balloon-bouquets/lilac-2.png?v=solid-ece8e2-edge3"
+      ],
+      "priceKopecks": 250000
+    },
+    {
+      "id": "balloon-bouquet-red-gold",
+      "slug": "balloon-bouquet-red-gold",
+      "name": "Красно-золотой букет из шаров",
+      "price": 3200,
+      "description": "Красные и золотые шары · Гипсофила · Упаковка · Ленты",
+      "category": "Букеты из шаров",
+      "madeToOrder": true,
+      "stock": null,
+      "tags": "букет из шаров",
+      "note": "Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую",
+      "images": [
+        "assets/balloon-bouquets/red-gold-1.png?v=solid-ece8e2-edge3"
+      ],
+      "priceKopecks": 320000
+    },
+    {
+      "id": "balloon-bouquet-red-hearts",
+      "slug": "balloon-bouquet-red-hearts",
+      "name": "Букет из красных сердец",
+      "price": 2500,
+      "description": "Фольгированные сердца · Упаковка · Ленты",
+      "category": "Букеты из шаров",
+      "madeToOrder": true,
+      "stock": null,
+      "tags": "букет из шаров",
+      "note": "Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую",
+      "images": [
+        "assets/balloon-bouquets/red-hearts-1.png?v=solid-ece8e2-edge3"
+      ],
+      "priceKopecks": 250000
+    },
+    {
+      "id": "balloon-bouquet-pink-silver",
+      "slug": "balloon-bouquet-pink-silver",
+      "name": "Розово-серебряный букет с бабочками",
+      "price": 3200,
+      "description": "Розовые и серебряные шары · Гипсофила · Бабочки · Упаковка",
+      "category": "Букеты из шаров",
+      "madeToOrder": true,
+      "stock": null,
+      "tags": "букет из шаров",
+      "note": "Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую",
+      "images": [
+        "assets/balloon-bouquets/pink-silver-1.png?v=solid-ece8e2-edge3"
+      ],
+      "priceKopecks": 320000
+    },
+    {
+      "id": "balloon-bouquet-rose-gold-confetti",
+      "slug": "balloon-bouquet-rose-gold-confetti",
+      "name": "Букет «Розовое золото» с надписью",
+      "price": 3200,
+      "description": "Шары розовое золото и серебро · Шары с конфетти · Гипсофила · Бабочки · Упаковка",
+      "category": "Букеты из шаров",
+      "madeToOrder": true,
+      "stock": null,
+      "tags": "букет из шаров",
+      "note": "Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую",
+      "images": [
+        "assets/balloon-bouquets/rose-gold-confetti-1.png?v=solid-ece8e2-edge3"
+      ],
+      "priceKopecks": 320000
+    },
+    {
+      "id": "balloon-bouquet-champagne-butterflies",
+      "slug": "balloon-bouquet-champagne-butterflies",
+      "name": "Букет с серебряными бабочками",
+      "price": 3200,
+      "description": "Металлизированные шары · Шары с конфетти · Гипсофила · Бабочки · Упаковка",
+      "category": "Букеты из шаров",
+      "madeToOrder": true,
+      "stock": null,
+      "tags": "букет из шаров",
+      "note": "Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую",
+      "images": [
+        "assets/balloon-bouquets/champagne-butterflies-1.png?v=solid-ece8e2-edge3"
+      ],
+      "priceKopecks": 320000
+    },
+    {
+      "id": "balloon-bouquet-pink-confetti",
+      "slug": "balloon-bouquet-pink-confetti",
+      "name": "Розовый букет с конфетти",
+      "price": 3200,
+      "description": "Розовые и металлизированные шары · Шары с конфетти · Гипсофила · Бабочки · Упаковка",
+      "category": "Букеты из шаров",
+      "madeToOrder": true,
+      "stock": null,
+      "tags": "букет из шаров",
+      "note": "Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую",
+      "images": [
+        "assets/balloon-bouquets/pink-confetti-1.png?v=solid-ece8e2-edge3"
+      ],
+      "priceKopecks": 320000
+    },
+    {
+      "id": "balloon-bouquet-lilac-round",
+      "slug": "balloon-bouquet-lilac-round",
+      "name": "Сиреневый букет с гипсофилой",
+      "price": 3200,
+      "description": "Сиреневые и фиолетовые шары · Гипсофила · Упаковка",
+      "category": "Букеты из шаров",
+      "madeToOrder": true,
+      "stock": null,
+      "tags": "букет из шаров",
+      "note": "Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую",
+      "images": [
+        "assets/balloon-bouquets/lilac-round-1.png?v=solid-ece8e2-edge3"
+      ],
+      "priceKopecks": 320000
+    },
+    {
+      "id": "balloon-bouquet-coral-confetti",
+      "slug": "balloon-bouquet-coral-confetti",
+      "name": "Коралловый букет с конфетти",
+      "price": 3200,
+      "description": "Коралловые и серебряные шары · Шары с конфетти · Гипсофила · Бабочки · Упаковка",
+      "category": "Букеты из шаров",
+      "madeToOrder": true,
+      "stock": null,
+      "tags": "букет из шаров",
+      "note": "Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую",
+      "images": [
+        "assets/balloon-bouquets/coral-confetti-1.png?v=solid-ece8e2-edge3",
+        "assets/balloon-bouquets/coral-confetti-2.png?v=solid-ece8e2-edge3"
+      ],
+      "priceKopecks": 320000
+    },
+    {
+      "id": "balloon-bouquet-purple-silver",
+      "slug": "balloon-bouquet-purple-silver",
+      "name": "Фиолетово-серебряный букет с бабочками",
+      "price": 3200,
+      "description": "Фиолетовые и серебряные шары · Гипсофила · Бабочки · Упаковка",
+      "category": "Букеты из шаров",
+      "madeToOrder": true,
+      "stock": null,
+      "tags": "букет из шаров",
+      "note": "Товар под заказ. Цвет уточняйте по наличию. Надписи можно любые. Упаковка – по наличию; по вашему желанию ее можно заменить на другую",
+      "images": [
+        "assets/balloon-bouquets/purple-silver-1.png?v=solid-ece8e2-edge3"
+      ],
+      "priceKopecks": 320000
+    },
+    {
+      "id": "business-bright-entrance",
+      "slug": "business-bright-entrance",
+      "name": "Яркое оформление входа",
+      "business": true,
+      "perStand": false,
+      "description": "",
+      "note": "Метраж рассчитывается индивидуально для каждого заказчика. Цена зависит от объёма работы.",
+      "price": 8500,
+      "maxPrice": 8500,
+      "images": [
+        "assets/business/01.jpg"
+      ],
+      "photoPrices": [
+        8500
+      ],
+      "category": "Для бизнеса",
+      "tags": "шары оформление для бизнеса",
+      "stock": null,
+      "priceKopecks": 850000
+    },
+    {
+      "id": "business-sweet-house",
+      "slug": "business-sweet-house",
+      "name": "Сладкий домик",
+      "business": true,
+      "perStand": false,
+      "description": "",
+      "note": "Метраж рассчитывается индивидуально для каждого заказчика. Цена зависит от объёма работы.",
+      "price": 10500,
+      "maxPrice": 12000,
+      "images": [
+        "assets/business/02.jpg",
+        "assets/business/04.jpg"
+      ],
+      "photoPrices": [
+        10500,
+        12000
+      ],
+      "category": "Для бизнеса",
+      "tags": "шары оформление для бизнеса",
+      "stock": null,
+      "priceKopecks": 1050000
+    },
+    {
+      "id": "business-shawarma-dark",
+      "slug": "business-shawarma-dark",
+      "name": "Шаурма не за горами – тёмный фасад",
+      "business": true,
+      "perStand": false,
+      "description": "",
+      "note": "Метраж рассчитывается индивидуально для каждого заказчика. Цена зависит от объёма работы.",
+      "price": 6500,
+      "maxPrice": 7000,
+      "images": [
+        "assets/business/03.jpg",
+        "assets/business/16.jpg"
+      ],
+      "photoPrices": [
+        6500,
+        7000
+      ],
+      "category": "Для бизнеса",
+      "tags": "шары оформление для бизнеса",
+      "stock": null,
+      "priceKopecks": 650000
+    },
+    {
+      "id": "business-fashion",
+      "slug": "business-fashion",
+      "name": "Модное место",
+      "business": true,
+      "perStand": false,
+      "description": "",
+      "note": "Метраж рассчитывается индивидуально для каждого заказчика. Цена зависит от объёма работы.",
+      "price": 7500,
+      "maxPrice": 7500,
+      "images": [
+        "assets/business/05.jpg"
+      ],
+      "photoPrices": [
+        7500
+      ],
+      "category": "Для бизнеса",
+      "tags": "шары оформление для бизнеса",
+      "stock": null,
+      "priceKopecks": 750000
+    },
+    {
+      "id": "business-star-stand",
+      "slug": "business-star-stand",
+      "name": "Стойка со звездой",
+      "business": true,
+      "perStand": true,
+      "description": "",
+      "note": "Метраж рассчитывается индивидуально для каждого заказчика. Цена зависит от объёма работы.",
+      "price": 2500,
+      "maxPrice": 2500,
+      "images": [
+        "assets/business/06.jpg"
+      ],
+      "photoPrices": [
+        2500
+      ],
+      "category": "Для бизнеса",
+      "tags": "шары оформление для бизнеса",
+      "stock": null,
+      "priceKopecks": 250000
+    },
+    {
+      "id": "business-tiger-batch",
+      "slug": "business-tiger-batch",
+      "name": "Tiger Batch Coffee Bar",
+      "business": true,
+      "perStand": false,
+      "description": "",
+      "note": "Метраж рассчитывается индивидуально для каждого заказчика. Цена зависит от объёма работы.",
+      "price": 5000,
+      "maxPrice": 7000,
+      "images": [
+        "assets/business/07.jpg",
+        "assets/business/08.jpg",
+        "assets/business/15.jpg"
+      ],
+      "photoPrices": [
+        7000,
+        7000,
+        5000
+      ],
+      "category": "Для бизнеса",
+      "tags": "шары оформление для бизнеса",
+      "stock": null,
+      "priceKopecks": 500000
+    },
+    {
+      "id": "business-shawarma-glass",
+      "slug": "business-shawarma-glass",
+      "name": "Шаурма не за горами – стеклянный фасад",
+      "business": true,
+      "perStand": false,
+      "description": "",
+      "note": "Метраж рассчитывается индивидуально для каждого заказчика. Цена зависит от объёма работы.",
+      "price": 5200,
+      "maxPrice": 5200,
+      "images": [
+        "assets/business/09.jpg"
+      ],
+      "photoPrices": [
+        5200
+      ],
+      "category": "Для бизнеса",
+      "tags": "шары оформление для бизнеса",
+      "stock": null,
+      "priceKopecks": 520000
+    },
+    {
+      "id": "business-shawarma-orange",
+      "slug": "business-shawarma-orange",
+      "name": "Шаурма не за горами – оранжевый фасад",
+      "business": true,
+      "perStand": false,
+      "description": "",
+      "note": "Метраж рассчитывается индивидуально для каждого заказчика. Цена зависит от объёма работы.",
+      "price": 6000,
+      "maxPrice": 6000,
+      "images": [
+        "assets/business/10.jpg"
+      ],
+      "photoPrices": [
+        6000
+      ],
+      "category": "Для бизнеса",
+      "tags": "шары оформление для бизнеса",
+      "stock": null,
+      "priceKopecks": 600000
+    },
+    {
+      "id": "business-gazprom",
+      "slug": "business-gazprom",
+      "name": "Газпромнефть",
+      "business": true,
+      "perStand": false,
+      "description": "",
+      "note": "Метраж рассчитывается индивидуально для каждого заказчика. Цена зависит от объёма работы.",
+      "price": 33000,
+      "maxPrice": 33000,
+      "images": [
+        "assets/business/12.jpg",
+        "assets/business/13.jpg",
+        "assets/business/14.jpg"
+      ],
+      "photoPrices": [
+        33000,
+        33000,
+        33000
+      ],
+      "category": "Для бизнеса",
+      "tags": "шары оформление для бизнеса",
+      "stock": null,
+      "priceKopecks": 3300000
+    },
+    {
+      "id": "business-bank-stands",
+      "slug": "business-bank-stands",
+      "name": "Стойки Совкомбанка",
+      "business": true,
+      "perStand": true,
+      "description": "",
+      "note": "Метраж рассчитывается индивидуально для каждого заказчика. Цена зависит от объёма работы.",
+      "price": 2500,
+      "maxPrice": 2500,
+      "images": [
+        "assets/business/17.jpg",
+        "assets/business/18.jpg"
+      ],
+      "photoPrices": [
+        2500,
+        2500
+      ],
+      "category": "Для бизнеса",
+      "tags": "шары оформление для бизнеса",
+      "stock": null,
+      "priceKopecks": 250000
+    },
+    {
+      "id": "business-aerokos",
+      "slug": "business-aerokos",
+      "name": "«Аэрокос»",
+      "business": true,
+      "perStand": false,
+      "description": "Баннер не входит в стоимость. Мы не изготавливаем и не предоставляем баннеры.",
+      "note": "Метраж рассчитывается индивидуально для каждого заказчика. Цена зависит от объёма работы.",
+      "price": 8500,
+      "maxPrice": 8500,
+      "images": [
+        "assets/business/11.jpg"
+      ],
+      "photoPrices": [
+        8500
+      ],
+      "category": "Для бизнеса",
+      "tags": "шары оформление для бизнеса",
+      "stock": null,
+      "priceKopecks": 850000
+    },
+    {
+      "id": "business-sports",
+      "slug": "business-sports",
+      "name": "Оформление спартакиады",
+      "business": true,
+      "perStand": false,
+      "description": "",
+      "note": "Метраж рассчитывается индивидуально для каждого заказчика. Цена зависит от объёма работы.",
+      "price": 8400,
+      "maxPrice": 8400,
+      "images": [
+        "assets/business/19.jpg"
+      ],
+      "photoPrices": [
+        8400
+      ],
+      "category": "Для бизнеса",
+      "tags": "шары оформление для бизнеса",
+      "stock": null,
+      "priceKopecks": 840000
+    },
+    {
+      "id": "business-bank-facade",
+      "slug": "business-bank-facade",
+      "name": "Совкомбанк и Халва – оформление фасада",
+      "business": true,
+      "perStand": false,
+      "description": "",
+      "note": "Метраж рассчитывается индивидуально для каждого заказчика. Цена зависит от объёма работы.",
+      "price": 17000,
+      "maxPrice": 17000,
+      "images": [
+        "assets/business/20.jpg",
+        "assets/business/21.jpg"
+      ],
+      "photoPrices": [
+        17000,
+        17000
+      ],
+      "category": "Для бизнеса",
+      "tags": "шары оформление для бизнеса",
+      "stock": null,
+      "priceKopecks": 1700000
+    },
+    {
+      "id": "business-shawarma-soul",
+      "slug": "business-shawarma-soul",
+      "name": "Шаверма от души",
+      "business": true,
+      "perStand": false,
+      "description": "",
+      "note": "Метраж рассчитывается индивидуально для каждого заказчика. Цена зависит от объёма работы.",
+      "price": 10000,
+      "maxPrice": 10000,
+      "images": [
+        "assets/business/22.jpg",
+        "assets/business/23.jpg",
+        "assets/business/24.jpg"
+      ],
+      "photoPrices": [
+        10000,
+        10000,
+        10000
+      ],
+      "category": "Для бизнеса",
+      "tags": "шары оформление для бизнеса",
+      "stock": null,
+      "priceKopecks": 1000000
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "php": "8.3 WebAssembly",
+  "mysql": "8.0.46",
+  "result": "PASS: local MySQL transaction, injected queue failure rollback, uniqueness, replay, conflict, rate rollback, history.\n",
+  "network": "restricted to single local MySQL port",
+  "nativeFastCGI": false
+}

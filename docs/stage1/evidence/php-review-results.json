@@ -1,0 +1,13 @@
+{
+  "version": {
+    "version": "8.3.33",
+    "pdo": [
+      "mysql",
+      "sqlite"
+    ]
+  },
+  "parsedFiles": 7,
+  "validationOutput": "PASS: 25 validation checks\n",
+  "transport": "WebAssembly PHP, no host filesystem mounts and no network proxy",
+  "nativeFastCGI": false
+}
