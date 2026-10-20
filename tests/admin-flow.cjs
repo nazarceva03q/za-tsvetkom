@@ -195,7 +195,7 @@ function makeAdminEnv() {
     getLeadsPage: async () => ({ items: [], total: 0 })
   };
   const admin = load('bot/src/admin.js', { './config': config, './vkApi': vkApiMock, './store': storeMock, './products': productsModule });
-  return { admin, sessions, owner, products: productsModule, downloadedUrls };
+  return { admin, sessions, owner, products: productsModule, downloadedUrls, vkApi:vkApiMock };
 }
 
 test('full "add product" flow for a regular category publishes with the site schema and asks the Hit question', async () => {
@@ -406,19 +406,35 @@ test('stock selection asks once: repeated click/search and empty event do not pr
  assert.equal(env.owner.length,prompted+1);
  assert.equal(env.owner.some(m=>m.text.includes('Не вижу числа')),false);
 });
-test('search sends one list, no photo uploads; quantities are not guessed from repeated button text',async()=>{
+test('search shows one photo card at a time, navigation keeps the right product and stale buttons are ignored',async()=>{
  const env=makeAdminEnv(),id='999';
- await env.products.saveProduct('Розы',null,{name:'Белые розы',price:1000,stock:4,photos:['https://x/photo.jpg']});
- await env.products.saveProduct('Розы',null,{name:'Красные розы',price:1000,stock:4,photos:[]});
+ const white=await env.products.saveProduct('Розы',null,{name:'Белые розы',price:null,priceLabel:'от 1000 ₽',stock:4,photos:['https://x/photo.jpg']});
+ const red=await env.products.saveProduct('Розы',null,{name:'Красные розы',price:1000,stock:4,photos:[]});
  await env.admin.sendMenu(id);await env.admin.handleCallback(id,env.sessions[id],'admin:stock');
  const before=env.owner.length;
  await env.admin.handleMessage({message:{body:{text:'розы'}}},id,env.sessions[id]);
- assert.equal(env.owner.length,before+1);assert.match(env.owner.at(-1).text,/Белые розы/);assert.match(env.owner.at(-1).text,/Красные розы/);
- assert.equal(env.owner.at(-1).photoUrl,undefined);assert.equal(env.downloadedUrls.length,0);
- await env.admin.handleCallback(id,env.sessions[id],'find:pick:0');
+ assert.equal(env.owner.length,before+1);assert.match(env.owner.at(-1).text,/Белые розы/);assert.match(env.owner.at(-1).text,/от 1000 ₽/);
+ assert.equal(env.owner.at(-1).photoUrl,'https://x/photo.jpg');assert.match(env.owner.at(-1).text,/Категория: Розы/);
+ assert.ok(env.owner.at(-1).rows.flat().some(b=>b.payload==='find:show:1:'+red.id));
+ await env.admin.handleCallback(id,env.sessions[id],'find:show:1:'+red.id);
+ assert.match(env.owner.at(-1).text,/Красные розы/);assert.equal(env.owner.at(-1).photoUrl,undefined);
+ const shown=env.owner.length;await env.admin.handleCallback(id,env.sessions[id],'find:show:0:wrong-id');assert.equal(env.owner.length,shown);
+ await env.admin.handleCallback(id,env.sessions[id],'find:pick:1:'+red.id);
+ assert.equal(env.sessions[id].stockTarget.id,red.id);
  const prompted=env.owner.length;
- await env.admin.handleMessage({message:{body:{text:'1. Белые розы'}}},id,env.sessions[id]);
+ await env.admin.handleCallback(id,env.sessions[id],'find:show:0:'+white.id);
+ await env.admin.handleMessage({message:{body:{text:'Этот товар'}}},id,env.sessions[id]);
  assert.equal(env.owner.length,prompted);
+});
+test('unavailable photo falls back to one selectable text card',async()=>{
+ const env=makeAdminEnv(),id='999';
+ await env.products.saveProduct('Розы',null,{name:'Роза',price:1000,stock:1,photos:['https://x/missing.jpg']});
+ env.vkApi.sendPhotoUrlMessage=async()=>({ok:false});
+ await env.admin.sendMenu(id);await env.admin.handleCallback(id,env.sessions[id],'admin:edit');
+ const before=env.owner.length;
+ await env.admin.handleMessage({message:{body:{text:'Роза'}}},id,env.sessions[id]);
+ assert.equal(env.owner.length,before+1);assert.match(env.owner.at(-1).text,/Роза/);
+ assert.ok(env.owner.at(-1).rows.flat().some(b=>b.payload.startsWith('find:pick:0:')));
 });
 test('stock save exposes only safe HTTP diagnostics and does not claim it was saved',async()=>{
  const env=makeAdminEnv(),id='999';

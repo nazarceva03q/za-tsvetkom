@@ -89,6 +89,9 @@ test('VK photo uses upload server, multipart, saveMessagesPhoto and attachment',
  }});
  assert.equal((await api.sendPhotoUrlMessage({userId:99},'Photo',null,'photo.jpg')).ok,true);
  assert.ok(calls[2].options.body instanceof FormData);
+ assert.equal(calls[0].options.signal,calls[1].options.signal);
+ assert.equal(calls[0].options.signal,calls[2].options.signal);
+ assert.equal(calls[0].options.signal,calls[3].options.signal);
  assert.equal(calls.at(-1).options.body.get('attachment'),'photo-123_4_key');
 });
 test('HTTP handler returns plain VK responses, rejects bad JSON and wrong methods, waits for processing',async()=>{

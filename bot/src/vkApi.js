@@ -2,10 +2,10 @@
 const crypto = require('crypto');
 const config = require('./config');
 
-async function callApi(method, params = {}) {
+async function callApi(method, params = {}, options = {}) {
   if (!config.botToken) throw new Error('VK_GROUP_TOKEN не настроен');
   const body = new URLSearchParams({ ...params, access_token: config.botToken, v: config.apiVersion });
-  const response = await fetch('https://api.vk.com/method/' + method, { method: 'POST', body, signal: AbortSignal.timeout(15000) });
+  const response = await fetch('https://api.vk.com/method/' + method, { method: 'POST', body, signal: options.signal || AbortSignal.timeout(15000) });
   if (!response.ok) throw new Error('VK HTTP ' + response.status);
   const json = await response.json();
   if (json.error) throw new Error('VK API ' + json.error.error_code + ': ' + json.error.error_msg);
@@ -46,10 +46,10 @@ async function sendMessage(target, text, rows, attachment) {
   for (const buttons of pages.slice(1)) await callApi('messages.send', { peer_id, message: 'Продолжение меню:', random_id: crypto.randomInt(1, 2147483647), keyboard: JSON.stringify({ inline: true, buttons }) });
   return { ok: true };
 }
-async function downloadBinary(url) {
+async function downloadBinary(url, options = {}) {
   const parsed = new URL(url);
   if (parsed.protocol !== 'https:') throw new Error('Фото должно иметь HTTPS-адрес');
-  const response = await fetch(parsed, { signal: AbortSignal.timeout(15000) });
+  const response = await fetch(parsed, { signal: options.signal || AbortSignal.timeout(15000) });
   if (!response.ok) throw new Error('Photo HTTP ' + response.status);
   const contentType = (response.headers.get('content-type') || '').split(';')[0];
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(contentType)) throw new Error('Неподдерживаемый формат фото');
@@ -57,18 +57,19 @@ async function downloadBinary(url) {
   for await (const chunk of response.body) { length+=chunk.length;if(length>20*1024*1024)throw new Error('Фото больше 20 МБ');chunks.push(Buffer.from(chunk)); }
   return { buffer: Buffer.concat(chunks), contentType };
 }
-async function sendPhotoUrlMessage(target, text, rows, photoUrl) {
+async function sendPhotoUrlMessage(target, text, rows, photoUrl, options = {}) {
   let attachment;
   try {
+    const signal=AbortSignal.timeout(options.photoTimeoutMs || 15000);
     const absolute = new URL(photoUrl, config.siteBaseUrl + '/').href;
-    const { buffer, contentType } = await downloadBinary(absolute);
-    const upload = await callApi('photos.getMessagesUploadServer', { peer_id: target.userId || target.chatId });
+    const { buffer, contentType } = await downloadBinary(absolute,{signal});
+    const upload = await callApi('photos.getMessagesUploadServer', { peer_id: target.userId || target.chatId },{signal});
     const form = new FormData();
     form.append('photo', new Blob([buffer], { type: contentType }), contentType === 'image/png' ? 'photo.png' : 'photo.jpg');
-    const response = await fetch(upload.upload_url, { method: 'POST', body: form, signal: AbortSignal.timeout(15000) });
+    const response = await fetch(upload.upload_url, { method: 'POST', body: form, signal });
     if (!response.ok) throw new Error('VK photo upload HTTP ' + response.status);
     const data = await response.json();
-    const photos = await callApi('photos.saveMessagesPhoto', { server: data.server, photo: data.photo, hash: data.hash });
+    const photos = await callApi('photos.saveMessagesPhoto', { server: data.server, photo: data.photo, hash: data.hash },{signal});
     if (!photos?.[0]) throw new Error('VK did not save photo');
     const p = photos[0]; attachment = 'photo' + p.owner_id + '_' + p.id + (p.access_key ? '_' + p.access_key : '');
   } catch (error) {

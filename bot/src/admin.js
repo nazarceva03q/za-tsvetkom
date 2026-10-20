@@ -689,9 +689,9 @@ function matchCardText(product, category) {
   const lines = [product.name];
   if (product.business) {
     const prices = product.photoPrices || [];
-    lines.push(prices.length && Math.min(...prices) !== Math.max(...prices) ? money(Math.min(...prices)) + '–' + money(Math.max(...prices)) + ' ₽' : money(product.price) + ' ₽');
+    lines.push(product.priceLabel || (prices.length && prices.every(Number.isFinite) && Math.min(...prices) !== Math.max(...prices) ? money(Math.min(...prices)) + '–' + money(Math.max(...prices)) + ' ₽' : pricing.format(product.price)));
   } else {
-    lines.push(money(product.price) + ' ₽');
+    lines.push(pricing.format(product.price,product.priceLabel));
     const { composition } = splitDescription(product.description);
     if (composition.length) {
       lines.push('');
@@ -717,13 +717,28 @@ async function handleFindName(userId, session, text) {
   session.matches = matches.map((m) => ({ category: m.category, id: m.product.id }));
   session.findQuery = query;
   await store.setSession(userId, session);
-  // One compact response avoids slow re-upload of up to five photos to VK,
-  // webhook timeouts, partial result lists and repeated cards on delivery retry.
-  const lines = matches.map(({product,category},i)=>
-    (i+1)+'. '+product.name+' — '+pricing.format(product.price,product.priceLabel)+' ('+category+')');
-  const rows = matches.map(({product},i)=>[vkApi.callbackButton((i+1)+'. '+product.name,'find:pick:'+i)]);
+  await showFindMatch(userId,session,0,matches[0].product);
+}
+
+async function showFindMatch(userId,session,index,loadedProduct) {
+  if(session.step!=='admin_find_name'||!Number.isInteger(index))return;
+  const match=(session.matches||[])[index];if(!match)return;
+  const product=loadedProduct||await products.getProductById(match.id);
+  if(!product){await vkApi.sendMessage({userId},'Этот товар уже удалён. Напишите название для нового поиска.',[backRow()]);return;}
+  const count=session.matches.length;
+  const text='Товар '+(index+1)+' из '+count+'\n\n'+matchCardText(product,match.category);
+  const rows=[[vkApi.callbackButton('Этот товар','find:pick:'+index+':'+match.id)]];
+  const navigation=[];
+  if(index>0)navigation.push(vkApi.callbackButton('← Предыдущий','find:show:'+(index-1)+':'+session.matches[index-1].id));
+  if(index+1<count)navigation.push(vkApi.callbackButton('Следующий →','find:show:'+(index+1)+':'+session.matches[index+1].id));
+  if(navigation.length)rows.push(navigation);
   rows.push(backRow());
-  await vkApi.sendMessage({userId},'Выберите товар:\n\n'+lines.join('\n'),rows);
+  const photo=(product.images||[])[0];
+  if(photo){
+    const result=await vkApi.sendPhotoUrlMessage({userId},text,rows,photo,{photoTimeoutMs:8000});
+    if(result&&result.ok)return;
+  }
+  await vkApi.sendMessage({userId},text,rows);
 }
 
 async function pickMatch(userId, session, index) {
@@ -946,7 +961,15 @@ async function handleCallback(userId, session, data) {
   if (data === 'hit:set:1') { await setHit(userId, session, true); return true; }
   if (data === 'hit:set:0') { await setHit(userId, session, false); return true; }
 
-  if (data.indexOf('find:pick:') === 0) { await pickMatch(userId, session, parseInt(data.slice('find:pick:'.length), 10)); return true; }
+  if (data.indexOf('find:show:') === 0 || data.indexOf('find:pick:') === 0) {
+    const [,action,rawIndex,expectedId]=data.split(':');
+    if(!/^\d+$/.test(rawIndex||''))return true;
+    const index=Number(rawIndex),match=(session.matches||[])[index];
+    if(!match||(expectedId&&expectedId!==match.id))return true;
+    if(action==='show')await showFindMatch(userId,session,index);
+    else await pickMatch(userId,session,index);
+    return true;
+  }
   if (data === 'delete:confirm:yes') { await confirmDelete(userId, session, true); return true; }
   if (data === 'delete:confirm:no') { await confirmDelete(userId, session, false); return true; }
   return false;
