@@ -36,7 +36,7 @@ test('VK message normalization selects largest photo, ignores outgoing messages 
  e.object.message.attachments=[{type:'photo',photo:{sizes:[{width:10,height:10,url:'https://small'},{width:100,height:100,url:'https://large'}]}}];
  const u=webhook.normalize(e);
  assert.equal(u.user_id,99);assert.equal(u.message.body.attachments[0].payload.url,'https://large');
- assert.equal(u.message.body.mid,'evt1');
+ assert.equal(u.message.body.mid,7);
  e.object.message.out=1;assert.equal(webhook.normalize(e),null);
  e.object.message.out=0;e.object.message.peer_id=2000000001;assert.equal(webhook.normalize(e),null);
 });
@@ -51,6 +51,11 @@ test('failed event can be retried instead of being discarded as a duplicate',asy
  env.bot.handleUpdate=async()=>{if(++attempts===1)throw Error('network');};
  await assert.rejects(env.webhook.handle(event()),/network/);
  assert.equal((await env.webhook.handle(event())).body,'ok');assert.equal(attempts,2);
+});
+test('the same VK message with a changed delivery envelope is not processed twice',async()=>{
+ const env=webhookEnv();await env.webhook.handle(event());
+ await env.webhook.handle({...event(),event_id:'new-envelope'});
+ assert.equal(env.updates.length,1);assert.equal(env.updates[0].message.body.mid,7);
 });
 test('VK text keyboard payload is normalized as a command',()=>{
  const {webhook}=webhookEnv(),e=event();e.object.message.payload=JSON.stringify({command:'admin:menu'});

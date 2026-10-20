@@ -15,7 +15,8 @@ function stockMarkup(p){return p.madeToOrder||p.business?'':p.stock===null?'<p c
 // Safe legacy fallback. Checkout can only complete through the PHP response.
 function completeCartOrder(){toast('Сохранение заявки не подтверждено.');return false}
 refreshInventory();
-let favorites=storage.get('favorites',[]),cart=storage.get('cart',{});if(!Array.isArray(favorites))favorites=[];favorites=favorites.filter(id=>allProducts.some(p=>p.id===id));if(!cart||Array.isArray(cart)||typeof cart!=='object')cart={};for(const id of Object.keys(cart)){const p=allProducts.find(p=>p.id===id);if(!p||!Number.isInteger(cart[id])||cart[id]<=0)delete cart[id];else {cart[id]=Math.min(cart[id],p.stock??99);if(!cart[id])delete cart[id]}}
+const cloudCatalogExpected=Boolean(document.querySelector('meta[name="catalog-url"]')?.content);
+let favorites=storage.get('favorites',[]),cart=storage.get('cart',{});if(!Array.isArray(favorites))favorites=[];favorites=favorites.filter(id=>typeof id==='string'&&/^[a-z0-9-]{1,100}$/.test(id)&&(cloudCatalogExpected||allProducts.some(p=>p.id===id)));if(!cart||Array.isArray(cart)||typeof cart!=='object')cart={};for(const id of Object.keys(cart)){const p=allProducts.find(p=>p.id===id);if(!/^[a-z0-9-]{1,100}$/.test(id)||!Number.isInteger(cart[id])||cart[id]<=0||(!p&&!cloudCatalogExpected))delete cart[id];else if(!cloudCatalogExpected){cart[id]=Math.min(cart[id],p.stock??99);if(!cart[id])delete cart[id]}}
 let priceMin=0,priceMax=Infinity;let filter='Все',budget=null,expanded=false,modalMode='',lastFocus=null,quizStep=0,quizAnswers={};
 const photo='<div class="photo"><span class="camera" aria-hidden="true"></span></div>';
 const flower='<span class="ticker-heart" aria-hidden="true">♥</span>';

@@ -25,6 +25,7 @@ class PublicationTests(unittest.TestCase):
     def test_allowlist_and_entry_last(self):
         for name in ['backend/config.php', 'bot/data/leads.json', 'api/orders.php',
                      'assets/leak.php', 'assets/leak.zip', 'assets/.env.png', 'owner/orders.php',
+                     'assets/catalog/runtime.jpg',
                      'assets/products/test.jpg', 'fonts/test.woff2']:
             p = self.root / name
             p.parent.mkdir(parents=True, exist_ok=True)

@@ -25,7 +25,7 @@ function normalize(data) {
   });
   return { update_type: payload ? 'message_callback' : 'message_created', user_id: message.from_id, callback_data: payload,
     callback: payload ? { callback_id: data.event_id || message.id } : undefined,
-    timestamp: message.date, message: { sender: { user_id: message.from_id }, body: { mid: data.event_id || message.id || message.conversation_message_id, text: message.text || '', attachments } } };
+    timestamp: message.date, message: { sender: { user_id: message.from_id }, body: { mid: message.id || message.conversation_message_id || data.event_id, text: message.text || '', attachments } } };
 }
 async function handle(data) {
   if (!config.groupId || !config.webhookSecret) return { status: 503, body: 'VK callback is not configured' };
@@ -37,7 +37,7 @@ async function handle(data) {
     if (data.type === 'message_event') {
       try { await vkApi.answerEvent(data.object); } catch (error) { console.warn('[vkWebhook] Callback acknowledgement failed:', error.message); }
     }
-    const eventId = data.group_id + ':' + data.type + ':' + (data.event_id || (data.type === 'message_event' ? data.object.event_id : data.object.message.id || data.object.message.conversation_message_id));
+    const eventId = data.group_id + ':' + data.type + ':' + update.user_id + ':' + (data.type === 'message_event' ? (data.object.event_id || data.event_id) : data.object.message.id || data.object.message.conversation_message_id || data.event_id);
     if (await store.hasProcessedEvent(eventId)) return { status: 200, body: 'ok' };
     await bot.handleUpdate(update);
     await store.markProcessedEvent(eventId);

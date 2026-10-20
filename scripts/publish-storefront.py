@@ -29,6 +29,9 @@ def public_files(root):
         if base.exists():
             for p in sorted(base.rglob('*')):
                 relative = p.relative_to(root)
+                # Runtime photos belong to REG's catalogue API, never GitHub.
+                if relative.parts[:2] == ('assets', 'catalog'):
+                    continue
                 if any(part.startswith('.') for part in relative.parts):
                     continue
                 if p.suffix.lower() in extensions and p.is_file():

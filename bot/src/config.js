@@ -54,17 +54,8 @@ const config = {
     accessKey: process.env.YC_S3_ACCESS_KEY || '',
     secretKey: process.env.YC_S3_SECRET_KEY || ''
   },
-  // Отдельный, ПУБЛИЧНЫЙ (открытый на чтение) бакет — каталог товаров
-  // (catalog.json) и фото, загруженные через бота («Добавить товар» /
-  // «Изменить товар»). Сайт читает catalog.json напрямую по HTTPS, без
-  // обращения к функции бота. Ключи доступа те же, что у основного
-  // (приватного) бакета выше — один сервисный аккаунт может писать в оба
-  // бакета, если у него есть роль storage.editor на них.
-  s3Public: {
-    bucket: process.env.YC_PUBLIC_S3_BUCKET || '',
-    accessKey: process.env.YC_S3_ACCESS_KEY || '',
-    secretKey: process.env.YC_S3_SECRET_KEY || ''
-  }
+  regCatalogUrl: process.env.REG_CATALOG_URL || '',
+  regCatalogSecret: process.env.REG_CATALOG_SECRET || ''
 };
 
 if (!config.botToken) {
@@ -76,8 +67,6 @@ if (!config.ownerChatId) {
 if (!config.s3.bucket) {
   console.warn('[config] YC_S3_BUCKET не задан — используется локальное файловое хранилище (bot/data/*.json). На Cloud Functions это НЕ будет работать между вызовами, см. README.md.');
 }
-if (!config.s3Public.bucket) {
-  console.warn('[config] YC_PUBLIC_S3_BUCKET не задан — управление товарами через бота (добавить/изменить/удалить) работать не будет, см. README.md.');
-}
+if (!config.regCatalogUrl) console.warn('[config] REG_CATALOG_URL missing: catalogue editing disabled.');
 
 module.exports = config;

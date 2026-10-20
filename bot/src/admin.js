@@ -30,6 +30,7 @@
 const vkApi = require('./vkApi');
 const store = require('./store');
 const products = require('./products');
+const config = require('./config');
 
 const REGULAR_FIELD_ORDER = ['photos', 'name', 'composition', 'extra', 'price', 'stock'];
 
@@ -208,12 +209,11 @@ async function handleTextField(userId, session, field, text) {
     if (/^-+$/.test(value)) {
       session.draft.stock = null;
     } else {
-      const digits = value.replace(/\D/g, '');
-      if (!digits) {
+      if (!/^\d{1,5}$/.test(value) || Number(value) > 10000) {
         await vkApi.sendMessage({ userId }, 'Не вижу числа. Напишите количество цифрами, или поставьте прочерк -.', [backRow()]);
         return;
       }
-      session.draft.stock = Number(digits);
+      session.draft.stock = Number(value);
     }
   }
   await advanceAfterField(userId, session, field);
@@ -683,7 +683,11 @@ async function startFind(userId, action) {
     await vkApi.sendMessage({ userId }, 'Напишите название товара, чтобы поставить или снять отметку «Хит».', [backRow()]);
     return;
   }
-  const verb = action === 'delete' ? 'удалить' : action === 'stock' ? 'изменить количество которого' : 'изменить';
+  if (action === 'stock') {
+    await vkApi.sendMessage({ userId }, 'Напишите название товара, чтобы изменить его количество.', [backRow()]);
+    return;
+  }
+  const verb = action === 'delete' ? 'удалить' : 'изменить';
   await vkApi.sendMessage({ userId }, 'Напишите название товара, который нужно ' + verb + '.', [backRow()]);
 }
 
@@ -717,22 +721,20 @@ async function handleFindName(userId, session, text) {
     return;
   }
   session.matches = matches.map((m) => ({ category: m.category, id: m.product.id }));
+  session.findQuery = query;
   await store.setSession(userId, session);
-  for (let i = 0; i < matches.length; i += 1) {
-    const { category, product } = matches[i];
-    const photoUrl = (product.images || [])[0];
-    const text2 = matchCardText(product, category);
-    const rows = [[vkApi.callbackButton('Этот товар', 'find:pick:' + i)], backRow()];
-    if (photoUrl) {
-      const result = await vkApi.sendPhotoUrlMessage({ userId }, text2, rows, photoUrl);
-      if (!result.ok) await vkApi.sendMessage({ userId }, text2, rows);
-    } else {
-      await vkApi.sendMessage({ userId }, text2, rows);
-    }
-  }
+  // One compact response avoids slow re-upload of up to five photos to VK,
+  // webhook timeouts, partial result lists and repeated cards on delivery retry.
+  const lines = matches.map(({product,category},i)=>
+    (i+1)+'. '+product.name+' — '+money(product.price)+' ₽ ('+category+')');
+  const rows = matches.map(({product},i)=>[vkApi.callbackButton((i+1)+'. '+product.name,'find:pick:'+i)]);
+  rows.push(backRow());
+  await vkApi.sendMessage({userId},'Выберите товар:\n\n'+lines.join('\n'),rows);
 }
 
 async function pickMatch(userId, session, index) {
+  // A repeated click/retried selection must not restart the quantity prompt.
+  if (session.step !== 'admin_find_name') return;
   const match = (session.matches || [])[index];
   if (!match) {
     await sendMenu(userId);
@@ -827,29 +829,40 @@ async function confirmDelete(userId, session, yes) {
 }
 
 async function handleStockValue(userId, session, text) {
-  if (!text || !text.trim()) {
-    await vkApi.sendMessage({ userId }, 'Напишите количество цифрами, или поставьте прочерк -.', [backRow()]);
-    return;
-  }
+  if (!text || !text.trim()) return;
   const target = session.stockTarget;
   if (!target) {
     await sendMenu(userId);
     return;
   }
   const value = text.trim();
+  // A button echo/late search text is not a numeric answer. Do not send a
+  // second quantity prompt for it. Invalid numeric input still gets feedback.
+  if (!/^[\d.,+\-\s]+$/.test(value)) return;
   let newStock;
   if (/^-+$/.test(value)) {
     newStock = null;
   } else {
-    const digits = value.replace(/\D/g, '');
-    if (!digits) {
-      await vkApi.sendMessage({ userId }, 'Не вижу числа. Напишите количество цифрами, или поставьте прочерк -.', [backRow()]);
+    if (!/^\d{1,5}$/.test(value) || Number(value) > 10000) {
+      await vkApi.sendMessage({ userId }, 'Допустимо целое число от 0 до 10000 или «-».', [backRow()]);
       return;
     }
-    newStock = Number(digits);
+    newStock = Number(value);
   }
-  await products.updateStock(target.id, newStock);
-  await sendMenu(userId, '✅ Количество товара «' + target.name + '» обновлено: ' + (newStock === null ? 'под заказ' : newStock + ' шт.') + '.');
+  try {
+    const saved = await products.updateStock(target.id, newStock);
+    if (!saved) return sendMenu(userId, 'Товар уже удалён. Найдите другой товар.');
+    await sendMenu(userId, '✅ Количество товара «' + target.name + '» сохранено в каталоге: ' + (newStock === null ? 'под заказ' : newStock + ' шт.') + '. Изменение сохранено на REG.RU и появится на сайте при обновлении страницы.');
+  } catch (error) {
+    const explanations = {
+      403:'REG.RU отклонил доступ к записи (HTTP 403). Нужно проверить передачу секрета каталога.',
+      405:'Хостинг отклонил метод записи (HTTP 405).',
+      409:'Каталог уже изменён другим действием (HTTP 409). Найдите товар заново.',
+      422:'REG.RU отклонил данные каталога (HTTP 422). Нужна проверка каталога на сервере.',
+      503:'Сервис каталога REG.RU временно недоступен (HTTP 503).'
+    };
+    await vkApi.sendMessage({ userId }, 'Сохранение количества не подтверждено. '+(explanations[error.status] || 'Не удалось получить подтверждение от REG.RU. Проверьте количество перед повторной попыткой.'), [backRow()]);
+  }
 }
 
 // ---------- заявки ----------
@@ -958,8 +971,18 @@ async function handleMessage(update, userId, session) {
     case 'admin_biz_photo': return handleBizPhotoStep(update, userId, session);
     case 'admin_biz_price': return handleBizPriceText(userId, session, text);
     case 'admin_biz_note_edit': return handleBizNoteEditText(userId, session, text);
-    case 'admin_find_name': return handleFindName(userId, session, text);
-    case 'admin_stock_new_value': return handleStockValue(userId, session, text);
+    case 'admin_find_name':
+      session.findMessageId = update.message && update.message.body && update.message.body.mid;
+      return handleFindName(userId, session, text);
+    case 'admin_stock_new_value': {
+      // VK can retry the earlier search message after the product was selected.
+      // Neither that message nor a selection-button echo is a quantity answer.
+      const mid = update.message && update.message.body && update.message.body.mid;
+      if ((mid != null && session.findMessageId != null && String(mid) === String(session.findMessageId))
+          || (text && text.trim() === 'Этот товар')
+          || (text && session.findQuery && text.trim() === session.findQuery && !/^[\d-]+$/.test(text.trim()))) return;
+      return handleStockValue(userId, session, text);
+    }
     default:
       // Шаги с кнопками (выбор категории/подтверждение/предпросмотр/меню
       // фото/описания) не ждут текст — не сбрасываем черновик, просто

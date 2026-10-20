@@ -15,22 +15,27 @@ function load(file, dependencies) {
     module: { exports: {} }, __dirname: path.dirname(path.join(root, file)),
     require(name) { if (name === 'crypto') return require('node:crypto'); if (!(name in dependencies)) throw Error('Unexpected dependency: ' + name); return dependencies[name]; },
     console: { log() {}, warn() {}, error(...args) { throw Error(args.join(' ')); } },
-    Buffer, setTimeout, clearTimeout, Intl
+    Buffer, setTimeout, clearTimeout, Intl, URL
   };
   vm.runInNewContext(fs.readFileSync(path.join(root, file), 'utf8'), sandbox, { filename: file });
   return sandbox.module.exports;
 }
 
-const config = { s3Public: { bucket: 'pub-test', accessKey: 'k', secretKey: 's' } };
+const config = { ownerOrdersUrl:'https://xn----ctbjb9aqim7a5cq.online/owner/orders.php', s3Public: { bucket: 'pub-test', accessKey: 'k', secretKey: 's' } };
 
 function makeObjectStorage() {
-  const jsonObjects = {};
+  const names=['Букет дня','Розы','Сборные букеты','Монобукеты','Композиции','Свадебные букеты','Букеты из шаров','Для девушек','14 февраля','Девичник','Новый год','Последний звонок','Для девочек','Для мальчиков','Гендер пати','Коробка с шарами','Годовасия','Для мужчин','Для бизнеса'];
+  const jsonObjects = {'catalog.json':Object.fromEntries(names.map(n=>[n,[]]))};
+  let version=1;
   const binaryObjects = {};
   return {
     store: { jsonObjects, binaryObjects },
     api: {
+      uploadPhoto: async (buffer,contentType)=>{const key=String(Object.keys(binaryObjects).length);binaryObjects[key]={buffer,contentType};return 'https://shop.test/assets/catalog/'+key+'.jpg';},
       getJson: async (cfg, key, fallback) => (key in jsonObjects ? JSON.parse(JSON.stringify(jsonObjects[key])) : fallback),
       putJson: async (cfg, key, data) => { jsonObjects[key] = JSON.parse(JSON.stringify(data)); return true; },
+      getJsonWithVersion: async (cfg,key,fallback)=>({data:key in jsonObjects?JSON.parse(JSON.stringify(jsonObjects[key])):fallback,etag:key in jsonObjects?'"'+version+'"':null}),
+      putJsonIfVersion: async(cfg,key,data,etag)=>{if(etag!=='"'+version+'"')throw Error('Concurrent update');jsonObjects[key]=JSON.parse(JSON.stringify(data));version++;return true;},
       putObject: async (cfg, key, buffer, contentType) => { binaryObjects[key] = { buffer, contentType }; return true; },
       publicUrl: (cfg, key) => 'https://storage.yandexcloud.net/' + cfg.bucket + '/' + key
     }
@@ -38,8 +43,24 @@ function makeObjectStorage() {
 }
 
 function loadProducts(objectStorageApi) {
-  return load('bot/src/products.js', { './config': config, './objectStorage': objectStorageApi, crypto: require('node:crypto') });
+  return load('bot/src/products.js', { './config': config, './catalogClient': objectStorageApi, crypto: require('node:crypto') });
 }
+
+test('search suggests existing products with reordered words, inflections and partial matches', async () => {
+  const {api}=makeObjectStorage(), products=loadProducts(api);
+  const fields={price:2500,stock:3,photos:[]};
+  const white=await products.saveProduct('Розы',null,{...fields,name:'Букет из белых роз'});
+  await products.saveProduct('Розы',null,{...fields,name:'Букет из красных роз'});
+  for(const query of ['роз белых букет','белыми розами','белая роза','белых','БЕЛЫЕ РОЗЫ']) {
+    const found=await products.searchByName(query);
+    assert.equal(found[0].product.id,white.id,query);
+  }
+  assert.equal((await products.searchByName('орхидея')).length,0);
+  assert.equal((await products.searchByName('розы')).length,2);
+  assert.deepEqual(Array.from(await products.searchByName('белыми розами'),m=>m.product.id),[white.id]);
+  assert.equal((await products.searchByName('белые орхидеи')).length,0);
+  assert.equal((await products.searchByName('для из')).length,0);
+});
 
 test('saveProduct builds the site schema: composition + height go into description, other text goes into note', async () => {
   const { api } = makeObjectStorage();
@@ -133,13 +154,14 @@ function makeAdminEnv() {
   const sessions = {};
   const owner = [];
   const { api: objectStorageApi } = makeObjectStorage();
-  const productsModule = load('bot/src/products.js', { './config': config, './objectStorage': objectStorageApi, crypto: require('node:crypto') });
+  const productsModule = load('bot/src/products.js', { './config': config, './catalogClient': objectStorageApi, crypto: require('node:crypto') });
   const downloadedUrls = [];
   const vkApiMock = {
     sendMessage: async (target, text, rows) => { owner.push({ text, rows }); return { ok: true }; },
     sendPhotoUrlMessage: async (target, text, rows, photoUrl) => { owner.push({ text, rows, photoUrl }); return { ok: true }; },
     downloadBinary: async (url) => { downloadedUrls.push(url); return { buffer: Buffer.from('bytes-for-' + url), contentType: 'image/jpeg' }; },
-    callbackButton: (text, payload) => ({ type: 'callback', text, payload })
+    callbackButton: (text, payload) => ({ type: 'callback', text, payload }),
+    linkButton: (text,link)=>({type:'open_link',text,link})
   };
   const storeMock = {
     getSession: async (id) => sessions[id] || { step: 'idle' },
@@ -147,7 +169,7 @@ function makeAdminEnv() {
     clearSession: async (id) => { delete sessions[id]; },
     getLeadsPage: async () => ({ items: [], total: 0 })
   };
-  const admin = load('bot/src/admin.js', { './vkApi': vkApiMock, './store': storeMock, './products': productsModule });
+  const admin = load('bot/src/admin.js', { './config': config, './vkApi': vkApiMock, './store': storeMock, './products': productsModule });
   return { admin, sessions, owner, products: productsModule, downloadedUrls };
 }
 
@@ -314,6 +336,87 @@ test('Hit menu marks and unmarks existing products, keeps all hits first and rej
 test('failed catalog write does not report a successful hit update', async () => {
  const {api}=makeObjectStorage();const products=loadProducts(api);
  const p=await products.saveProduct('Розы',null,{name:'Роза',price:1000,stock:2,photos:[]});
- api.putJson=async()=>false;
- await assert.rejects(products.updateHit(p.id,true),/Object Storage/);
+ api.putJsonIfVersion=async()=>false;
+ await assert.rejects(products.updateHit(p.id,true),/REG.RU/);
+});
+
+test('requests button sends a working protected-panel link',async()=>{
+ const env=makeAdminEnv();await env.admin.sendMenu('999');
+ await env.admin.handleCallback('999',env.sessions['999'],'admin:leads');
+ const message=env.owner.at(-1);assert.match(message.text,/закрытой панели/);
+ assert.equal(message.rows[0][0].type,'open_link');assert.equal(message.rows[0][0].link,config.ownerOrdersUrl);
+});
+test('stock prompt, exact validation, zero stock and deleted item handling',async()=>{
+ const env=makeAdminEnv(),id='999';
+ const p=await env.products.saveProduct('Розы',null,{name:'Тест количества',price:1000,stock:4,photos:[]});
+ await env.admin.sendMenu(id);await env.admin.handleCallback(id,env.sessions[id],'admin:stock');
+ assert.equal(env.owner.at(-1).text,'Напишите название товара, чтобы изменить его количество.');
+ await env.admin.handleMessage({message:{body:{text:'Тест количества'}}},id,env.sessions[id]);
+ await env.admin.handleCallback(id,env.sessions[id],'find:pick:0');
+ for(const value of ['-2','1.5','три','10001']){
+  await env.admin.handleMessage({message:{body:{text:value}}},id,env.sessions[id]);
+  assert.equal((await env.products.getProductById(p.id)).stock,4);
+ }
+ await env.admin.handleMessage({message:{body:{text:'0'}}},id,env.sessions[id]);
+ assert.equal((await env.products.getProductById(p.id)).stock,0);assert.match(env.owner.at(-1).text,/сохранено в каталоге/);
+ await assert.rejects(env.products.updateStock(p.id,-1),/Invalid stock/);
+});
+test('stock selection asks once: repeated click/search and empty event do not produce a second number request',async()=>{
+ const env=makeAdminEnv(),id='999';
+ const product=await env.products.saveProduct('Розы',null,{name:'Белые розы',price:1000,stock:4,photos:[]});
+ await env.admin.sendMenu(id);await env.admin.handleCallback(id,env.sessions[id],'admin:stock');
+ const search={message:{body:{mid:'search-1',text:'белые розы'}}};
+ await env.admin.handleMessage(search,id,env.sessions[id]);
+ const before=env.owner.length;
+ await env.admin.handleCallback(id,env.sessions[id],'find:pick:0');
+ assert.equal(env.owner.length,before+1);assert.match(env.owner.at(-1).text,/Напишите новое количество/);
+ const prompted=env.owner.length;
+ await env.admin.handleCallback(id,env.sessions[id],'find:pick:0');
+ for(const message of [search,{message:{body:{mid:'search-retry',text:'белые розы'}}},{message:{body:{text:'Этот товар'}}},{message:{body:{text:''}}}])
+  await env.admin.handleMessage(message,id,env.sessions[id]);
+ assert.equal(env.owner.length,prompted);
+ assert.equal((await env.products.getProductById(product.id)).stock,4);
+ await env.admin.handleMessage({message:{body:{mid:'quantity-2',text:'2'}}},id,env.sessions[id]);
+ assert.equal((await env.products.getProductById(product.id)).stock,2);
+ assert.equal(env.owner.length,prompted+1);
+ assert.equal(env.owner.some(m=>m.text.includes('Не вижу числа')),false);
+});
+test('search sends one list, no photo uploads; quantities are not guessed from repeated button text',async()=>{
+ const env=makeAdminEnv(),id='999';
+ await env.products.saveProduct('Розы',null,{name:'Белые розы',price:1000,stock:4,photos:['https://x/photo.jpg']});
+ await env.products.saveProduct('Розы',null,{name:'Красные розы',price:1000,stock:4,photos:[]});
+ await env.admin.sendMenu(id);await env.admin.handleCallback(id,env.sessions[id],'admin:stock');
+ const before=env.owner.length;
+ await env.admin.handleMessage({message:{body:{text:'розы'}}},id,env.sessions[id]);
+ assert.equal(env.owner.length,before+1);assert.match(env.owner.at(-1).text,/Белые розы/);assert.match(env.owner.at(-1).text,/Красные розы/);
+ assert.equal(env.owner.at(-1).photoUrl,undefined);assert.equal(env.downloadedUrls.length,0);
+ await env.admin.handleCallback(id,env.sessions[id],'find:pick:0');
+ const prompted=env.owner.length;
+ await env.admin.handleMessage({message:{body:{text:'1. Белые розы'}}},id,env.sessions[id]);
+ assert.equal(env.owner.length,prompted);
+});
+test('stock save exposes only safe HTTP diagnostics and does not claim it was saved',async()=>{
+ const env=makeAdminEnv(),id='999';
+ await env.products.saveProduct('Розы',null,{name:'Белые розы',price:1000,stock:4,photos:[]});
+ await env.admin.sendMenu(id);await env.admin.handleCallback(id,env.sessions[id],'admin:stock');
+ await env.admin.handleMessage({message:{body:{text:'Белые розы'}}},id,env.sessions[id]);
+ await env.admin.handleCallback(id,env.sessions[id],'find:pick:0');
+ env.products.updateStock=async()=>{throw Object.assign(Error('sensitive internal detail'),{status:403});};
+ await env.admin.handleMessage({message:{body:{text:'2'}}},id,env.sessions[id]);
+ assert.match(env.owner.at(-1).text,/HTTP 403/);assert.ok(!env.owner.at(-1).text.includes('sensitive'));
+ const before=env.owner.length;
+ await env.admin.handleMessage({message:{body:{text:'Выберите товар'}}},id,env.sessions[id]);assert.equal(env.owner.length,before);
+});
+test('malformed or missing catalog cannot be replaced with an empty catalog',async()=>{
+ const {api,store}=makeObjectStorage();const products=loadProducts(api);delete store.jsonObjects['catalog.json'];
+ await assert.rejects(products.updateStock('missing',2),/Каталог отсутствует/);
+ assert.equal(store.jsonObjects['catalog.json'],undefined);
+ store.jsonObjects['catalog.json']={'Розы':[]};await assert.rejects(products.getCatalog(),/Каталог отсутствует/);
+});
+test('concurrent edits cannot silently overwrite another administrator',async()=>{
+ const {api}=makeObjectStorage();const products=loadProducts(api);
+ const p=await products.saveProduct('Розы',null,{name:'Роза',price:1000,stock:4,photos:[]});
+ const result=await Promise.allSettled([products.updateStock(p.id,2),products.updateHit(p.id,true)]);
+ assert.equal(result.filter(r=>r.status==='fulfilled').length,1);
+ assert.equal(result.filter(r=>r.status==='rejected').length,1);
 });

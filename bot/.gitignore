@@ -5,3 +5,4 @@ data/processed_updates/
 !data/.gitkeep
 yandex-deploy.zip
 yandex-deploy-simplified.zip
+catalog.seed.json

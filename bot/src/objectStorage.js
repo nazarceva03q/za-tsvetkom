@@ -92,7 +92,7 @@ function request(method, objectKey, body, config, extraHeaders = {}, queryString
       res.on('error', reject);
       res.on('data', (c) => chunks.push(c));
       res.on('end', () => {
-        resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString('utf8') });
+        resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString('utf8'), etag: res.headers.etag });
       });
     });
     req.setTimeout(15000, () => req.destroy(new Error('Object Storage timeout')));
@@ -203,4 +203,19 @@ async function createJsonOnce(config, objectKey, data) {
   throw new Error('Dedup conditional PUT failed: ' + res.status);
 }
 
-module.exports = { getJson, putJson, createJsonOnce, putObject, publicUrl, putBucketCors };
+async function getJsonWithVersion(config, objectKey, fallback) {
+  if (!config.bucket || !config.accessKey || !config.secretKey) throw new Error('Object Storage is not configured');
+  const res = await request('GET', objectKey, '', config);
+  if (res.status === 404) return {data:fallback, etag:null};
+  if (res.status !== 200 || !res.etag) throw new Error('Catalog read failed: HTTP '+res.status);
+  return {data:JSON.parse(res.body), etag:res.etag};
+}
+async function putJsonIfVersion(config, objectKey, data, etag) {
+  if (!config.bucket || !config.accessKey || !config.secretKey) throw new Error('Object Storage is not configured');
+  const condition=etag ? {'If-Match':etag} : {'If-None-Match':'*'};
+  const res=await request('PUT',objectKey,JSON.stringify(data,null,2),config,{'Content-Type':'application/json',...condition});
+  if(res.status===412 || res.status===409) throw new Error('Catalog changed concurrently; reload before saving');
+  if(res.status!==200) throw new Error('Catalog write failed: HTTP '+res.status);
+  return true;
+}
+module.exports = { getJson, putJson, createJsonOnce, putObject, publicUrl, putBucketCors, getJsonWithVersion, putJsonIfVersion };

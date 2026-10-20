@@ -1,31 +1,8 @@
-// Динамический каталог товаров сайта «За цветком» — управляется из бота
-// Max (владелица): добавление/изменение/удаление товаров, управление
-// количеством, отметка «Хит». Хранится ОДНИМ JSON-файлом catalog.json в
-// ПУБЛИЧНОМ бакете Yandex Object Storage — сайт читает его напрямую по
-// обычной HTTPS-ссылке (см. bot/README.md).
-//
-// Форма данных для обычных категорий совпадает с window.FLOWER_PRODUCTS /
-// window.BALLOON_BOUQUETS на сайте (products-data.js, balloons-data.js):
-//   { id, slug, name, price (число, без ₽), category, description
-//     (пункты состава + необязательная "высота ..." через " · "),
-//     note, stock (число или null — «под заказ»/не отслеживается),
-//     tags, badge, images (массив URL), madeToOrder, isHit }
-// Категория «Для бизнеса» — отдельная форма (см. window.BUSINESS_BALLOONS):
-//   { id, slug, name, business: true, perStand, description, note,
-//     price, maxPrice (min/max по фото), images, photoPrices (цена
-//     каждого фото — «Оформление на фото: ...» показывается по фото),
-//     category: 'Для бизнеса', tags, stock: null, isHit }
-//
-// Категории и их порядок — как в самом сайте (app.js: categories +
-// balloonCategories). «Хит»: товар, отмеченный при добавлении/изменении,
-// кладётся В НАЧАЛО массива своей категории (самый верх галереи на
-// сайте) — см. saveProduct ниже.
-
-const crypto = require('crypto');
-const config = require('./config');
-const objectStorage = require('./objectStorage');
+// Shared REG.RU catalogue; private bot sessions remain in Yandex.
+const objectStorage = require('./catalogClient');
 
 const CATALOG_KEY = 'catalog.json';
+const CATALOG_VERSION = Symbol('catalogVersion');
 
 const FLOWER_CATEGORIES = ['Букет дня', 'Розы', 'Сборные букеты', 'Монобукеты', 'Композиции', 'Свадебные букеты'];
 const BALLOON_CATEGORIES = [
@@ -58,17 +35,28 @@ function emptyCatalog() {
 }
 
 async function getCatalog() {
-  const data = await objectStorage.getJson(config.s3Public, CATALOG_KEY, null);
-  const catalog = emptyCatalog();
-  if (data && typeof data === 'object') {
-    CATEGORY_NAMES.forEach((name) => { if (Array.isArray(data[name])) catalog[name] = data[name]; });
-  }
+  const {data,etag} = await objectStorage.getJsonWithVersion(null, CATALOG_KEY, null);
+  if (!data || Array.isArray(data) || typeof data!=='object' || !CATEGORY_NAMES.every(name=>Array.isArray(data[name])))
+    throw new Error('Каталог отсутствует или повреждён. Сначала подготовьте полный каталог сайта; пустой каталог автоматически не создаётся.');
+  const catalog = emptyCatalog(), ids=new Set();
+  CATEGORY_NAMES.forEach(name=>{
+    catalog[name]=data[name];
+    for(const p of catalog[name]){
+      if(!p || typeof p.id!=='string' || !/^[a-z0-9-]{1,100}$/.test(p.id) || ids.has(p.id) ||
+        p.category!==name || typeof p.name!=='string' || !Array.isArray(p.images) ||
+        !Number.isFinite(p.price) || p.price<=0 || (p.stock!==null && (!Number.isInteger(p.stock)||p.stock<0||p.stock>10000)))
+        throw new Error('Invalid product in stored catalog');
+      ids.add(p.id);
+    }
+  });
+  Object.defineProperty(catalog,CATALOG_VERSION,{value:etag});
   return catalog;
 }
 
 async function saveCatalog(catalog) {
   CATEGORY_NAMES.forEach((name) => catalog[name].sort((a, b) => Number(Boolean(b.isHit)) - Number(Boolean(a.isHit))));
-  if (!(await objectStorage.putJson(config.s3Public, CATALOG_KEY, catalog))) throw new Error('Не удалось записать каталог в Object Storage');
+  if (!catalog[CATALOG_VERSION]) throw new Error('Catalog version missing');
+  if (!(await objectStorage.putJsonIfVersion(null, CATALOG_KEY, catalog,catalog[CATALOG_VERSION]))) throw new Error('Не удалось сохранить каталог на REG.RU');
   return true;
 }
 
@@ -151,6 +139,7 @@ async function saveProduct(category, id, fields) {
     });
   }
 
+  if (id && !existing) throw new Error('Товар уже удалён. Найдите товар заново.');
   const finalId = id || generateId(catalog, fields.name, category);
   const isHit = Boolean(fields.isHit);
   let product;
@@ -234,6 +223,7 @@ async function updateHit(id, isHit) {
 }
 
 async function updateStock(id, newStock) {
+  if(newStock!==null&&(!Number.isInteger(newStock)||newStock<0||newStock>10000)) throw new Error('Invalid stock');
   const catalog = await getCatalog();
   const found = findById(catalog, id);
   if (!found) return null;
@@ -258,19 +248,23 @@ function normalizeForSearch(text) {
     .trim();
 }
 
+function wordStem(word) {
+  if (!/^[а-я]+$/.test(word) || word.length < 4) return word;
+  const stem = word.replace(/(?:иями|ями|ами|ого|ему|ому|ыми|ими|иях|ах|ях|ых|их|ов|ев|ей|ой|ый|ий|ая|яя|ое|ее|ые|ие|ую|юю|ия|ии|а|я|ы|и|у|ю|е|о)$/,'');
+  return stem.length >= 3 ? stem : word;
+}
+
 function wordsMatch(a, b) {
   if (!a || !b) return false;
-  if (a.length < 3 || b.length < 3) return a === b;
-  const minShare = Math.min(4, a.length, b.length);
-  let shared = 0;
-  while (shared < a.length && shared < b.length && a[shared] === b[shared]) shared += 1;
-  return shared >= minShare;
+  const x = wordStem(a), y = wordStem(b);
+  return x === y || (Math.min(x.length,y.length) >= 4 && (x.startsWith(y) || y.startsWith(x)));
 }
 
 async function searchByName(query, limit) {
   const catalog = await getCatalog();
   const q = normalizeForSearch(query);
-  const qWords = q.split(' ').filter(Boolean);
+  const stopWords = new Set(['из','для','и','с','со','в','на','по','к']);
+  const qWords = Array.from(new Set(q.split(' ').filter(w=>w && !stopWords.has(w))));
   const results = [];
 
   CATEGORY_NAMES.forEach((category) => {
@@ -281,27 +275,21 @@ async function searchByName(query, limit) {
       else if (q && name.indexOf(q) !== -1) score = 80;
       else {
         const nameWords = name.split(' ').filter(Boolean);
-        qWords.forEach((w) => {
-          if (nameWords.some((nw) => wordsMatch(nw, w))) score += 20;
-        });
+        const matches = qWords.filter(w=>nameWords.some(nw=>wordsMatch(nw,w))).length;
+        // A shared generic word must not pull unrelated products into results.
+        if (qWords.length && matches === qWords.length) score = 60 + matches;
       }
       if (score > 0) results.push({ category, product, score });
     });
   });
 
-  results.sort((a, b) => b.score - a.score);
+  results.sort((a, b) => b.score - a.score || a.product.name.localeCompare(b.product.name,'ru'));
   return results.slice(0, limit || 5);
 }
 
-// Загружает фото товара (байты, полученные из чата Max) в публичный
-// бакет и возвращает его постоянную HTTPS-ссылку, либо null, если
-// загрузка не удалась.
+// Upload to REG.RU before publishing the product. Failure prevents publication.
 async function uploadPhoto(buffer, contentType) {
-  const ext = contentType && contentType.indexOf('png') !== -1 ? 'png' : contentType && contentType.indexOf('webp') !== -1 ? 'webp' : 'jpg';
-  const key = 'products/' + Date.now() + '-' + crypto.randomBytes(4).toString('hex') + '.' + ext;
-  const ok = await objectStorage.putObject(config.s3Public, key, buffer, contentType || 'image/jpeg');
-  if (!ok) return null;
-  return objectStorage.publicUrl(config.s3Public, key);
+  return objectStorage.uploadPhoto(buffer, contentType);
 }
 
 module.exports = {

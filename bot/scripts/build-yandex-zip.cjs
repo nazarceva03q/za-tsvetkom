@@ -8,7 +8,7 @@ const zlib = require('node:zlib');
 const root = path.resolve(__dirname, '..');
 const files = ['index.js', 'src/admin.js', 'src/bot.js', 'src/config.js',
   'src/vkApi.js', 'src/vkWebhook.js', 'src/notify.js', 'src/siteRelay.js', 'src/objectStorage.js', 'src/products.js',
-  'src/store.js'];
+  'src/store.js', 'src/catalogClient.js'];
 
 function crc32(bytes) {
   let crc = 0xffffffff;

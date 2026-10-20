@@ -10,6 +10,10 @@ return [
     'password'=>'',
     'rate_secret'=>'', // separate random_bytes(32), hex encoded
     'rate_limit'=>10,
+    'catalog'=>[
+        'enabled'=>false, // enable only after init-catalog.php and photo-directory setup
+        'secret'=>'', // separate 64 hex characters; matches REG_CATALOG_SECRET on Yandex
+    ],
     'workflow'=>['enabled'=>false], // enable ONLY after migration 004 and updated lib/UI
     'retention'=>[
         'approved'=>false, // operator approves purpose, closure and deletion rules
