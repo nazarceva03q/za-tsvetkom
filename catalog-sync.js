@@ -21,12 +21,12 @@ function normalizeCloudCatalog(data){
  const items=names.flatMap(category=>data[category].map(p=>{
   if(!p||typeof p.id!=='string'||!/^[a-z0-9-]{1,100}$/.test(p.id)||seen.has(p.id)||p.category!==category||
    typeof p.name!=='string'||!p.name.trim()||p.name.length>255||!Array.isArray(p.images)||p.images.length>20||
-   !Number.isFinite(p.price)||p.price<=0||p.price>10000000||
+   (p.price===null?!(typeof p.priceLabel==='string'&&p.priceLabel.trim()):(!Number.isFinite(p.price)||p.price<=0||p.price>10000000))||
    (p.stock!==null&&(!Number.isInteger(p.stock)||p.stock<0||p.stock>10000)))throw Error('Invalid product');
   seen.add(p.id);
-  for(const k of ['description','note','badge','tags'])if(p[k]!==undefined&&typeof p[k]!=='string')throw Error('Invalid product text');
+  for(const k of ['description','note','badge','tags','priceLabel'])if(p[k]!==undefined&&typeof p[k]!=='string')throw Error('Invalid product text');
   if(p.business&&(!Array.isArray(p.photoPrices)||p.photoPrices.length!==p.images.length||!p.images.length||
-   !p.photoPrices.every(v=>Number.isFinite(v)&&v>0)||p.price!==Math.min(...p.photoPrices)||p.maxPrice!==Math.max(...p.photoPrices)))throw Error('Invalid business prices');
+   !p.photoPrices.every((v,i)=>Number.isFinite(v)&&v>0||v===null&&typeof p.photoPriceLabels?.[i]==='string'&&p.photoPriceLabels[i].trim())||(p.price!==null&&(p.price!==Math.min(...p.photoPrices)||p.maxPrice!==Math.max(...p.photoPrices)))))throw Error('Invalid business prices');
   return {...p,id:p.id,slug:p.id,name:p.name.trim(),description:p.description||'',note:p.note||'',badge:p.badge||'',tags:p.tags||'',
    images:p.images.map(catalogImage),category,liveCatalog:true};
  }));
@@ -51,7 +51,7 @@ async function loadDynamicCatalog(){
   // A pending request must retain its original basket until its result is resolved.
   let pending=true;try{pending=localStorage.getItem('zt:checkout-pending-v1')}catch{/* Keep basket if storage cannot be inspected. */}
   if(!pending){
-   for(const id of Object.keys(cart)){const p=items.find(p=>p.id===id);if(!p||p.business||p.madeToOrder)delete cart[id];else if(Number.isInteger(p.stock)){cart[id]=Math.min(cart[id],p.stock);if(!cart[id])delete cart[id]}}
+   for(const id of Object.keys(cart)){const p=items.find(p=>p.id===id);if(!p||p.business||p.madeToOrder||!fixedPrice(p))delete cart[id];else if(Number.isInteger(p.stock)){cart[id]=Math.min(cart[id],p.stock);if(!cart[id])delete cart[id]}}
    favorites=favorites.filter(id=>items.some(p=>p.id===id));
   }
   window.ZTCatalogState={mode:'live',connected:true,updatedAt:Date.now()};

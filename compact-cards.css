@@ -1,4 +1,12 @@
 /* Final, shared card layout: photograph, compact information, action. */
+.product-grid>.compact-card>.live-photo{height:auto!important;aspect-ratio:3/4!important;flex:none;min-height:0!important;width:100%}
+.compact-card .live-photo img{object-fit:cover!important}
+.compact-card .compact-summary{font-size:13px;line-height:1.4}
+.compact-card .compact-summary>p{margin:0!important;font-size:inherit!important;line-height:inherit!important}
+.compact-card .product-info>*{min-width:0;overflow-wrap:anywhere}
+.compact-card .product-price{white-space:pre-wrap}
+.compact-card .product-actions .primary{height:100%}
+@media(max-width:767px){.compact-card .compact-summary{font-size:16px}}
 .product-grid:has(>.compact-card){grid-auto-rows:auto!important;align-items:stretch!important}
 .product-grid>.product-card.compact-card{display:flex!important;flex-direction:column!important;grid-row:auto!important;grid-template-rows:none!important}
 .product-grid>.product-card.compact-card>.product-info{display:flex!important;flex-direction:column!important;flex:1!important;grid-row:auto!important;grid-template-rows:none!important;padding:16px!important;gap:8px!important;cursor:pointer}

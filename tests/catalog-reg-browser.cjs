@@ -32,6 +32,7 @@ const server=http.createServer((req,res)=>{
   await page.route('**/*',route=>{const r=route.request(),url=new URL(r.url());if(url.origin!==origin){if(/yandexcloud/.test(url.host))cloud.push(url.href);return route.abort();}if(url.pathname==='/assets/catalog/local.jpg')return route.fulfill({contentType:'image/jpeg',body:fs.readFileSync(path.join(root,data['Розы'][1].images[0].split('?')[0]))});if(r.resourceType()==='image')return route.abort();return route.continue();});
   await page.addInitScript(()=>localStorage.setItem('zt:cart',JSON.stringify({'product-reg-local-only':2})));
   await page.goto(origin);await page.waitForFunction(()=>window.ZTCatalogState?.connected);
+  await page.evaluate(()=>{bonusShown=true;if(modalMode==='bonus')modal.close()});
   assert.equal(await page.evaluate(()=>allProducts.length),54); // 53 real + added, no placeholder
   assert.equal(await page.evaluate(()=>cart['product-reg-local-only']),2); // kept while loading
   assert.equal(await page.evaluate(id=>allProducts.find(p=>p.id===id).stock,id),2);
@@ -61,6 +62,30 @@ const server=http.createServer((req,res)=>{
   data['Розы']=data['Розы'].filter(p=>p.id!=='product-reg-local-only');await page.evaluate(()=>loadDynamicCatalog());
   assert.equal(await page.evaluate(()=>allProducts.some(p=>p.id==='product-reg-local-only')),false);
   assert.equal(await page.evaluate(()=>cart['product-reg-local-only']),undefined);
+  // Reproduce a new business card beside balloons with different text lengths.
+  const balloonTemplate=Object.values(data).flat().find(p=>p.category==='Букеты из шаров');
+  data['Букеты из шаров'].unshift({...balloonTemplate,id:'layout-balloon',name:'Короткое название',images:['/assets/catalog/local.jpg'],isHit:true});
+  data['Для бизнеса'].unshift({id:'layout-business',slug:'layout-business',name:'Тест оформления с более длинным названием',category:'Для бизнеса',business:true,
+   images:['/assets/catalog/local.jpg'],price:null,maxPrice:null,priceLabel:'от 1000 ₽\nСтоимость уточняется',photoPrices:[null],photoPriceLabels:['от 1000 ₽'],description:'Тест',note:'Тест',stock:null,isHit:true});
+  data['Для девушек'].unshift({...balloonTemplate,id:'layout-custom-price',category:'Для девушек',name:'Текстовая цена',price:null,priceLabel:'<Товар под заказ> & от 1000 ₽',images:['/assets/catalog/local.jpg'],isHit:true});
+  await page.evaluate(()=>{balloonExpanded=true;return loadDynamicCatalog()});
+  for(const width of [360,768,1440]){
+   await page.setViewportSize({width,height:1100});
+   await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+   const geometry=await page.locator('#balloonProducts>.compact-card').evaluateAll(cards=>cards.map(card=>({top:Math.round(card.getBoundingClientRect().top),photo:card.querySelector('.live-photo').getBoundingClientRect().height,
+    cells:[...card.querySelector('.product-info').children].map(el=>el.getBoundingClientRect().top)})));
+   for(const card of geometry){const row=geometry.filter(other=>other.top===card.top);for(const other of row){assert.ok(Math.abs(card.photo-other.photo)<2);for(let i=0;i<5;i++)assert.ok(Math.abs(card.cells[i]-other.cells[i])<2,'all card types align including action buttons');}}
+   await page.evaluate(()=>window.scrollTo(0,document.querySelector('#balloonProducts').getBoundingClientRect().top+scrollY-30));
+   await page.screenshot({path:path.join(root,'preview/aligned-cards-'+width+'.png')});
+  }
+  const variable=page.locator('[data-info-product="layout-custom-price"]');
+  assert.equal(await variable.locator('.product-price').textContent(),'<Товар под заказ> & от 1000 ₽');
+  assert.equal(await variable.locator('.product-actions button').textContent(),'Уточнить цену');
+  await variable.locator('.product-actions button').click();assert.ok(await page.locator('#requestForm').count());
+  assert.equal(await page.evaluate(()=>cart['layout-custom-price']),undefined);
+  await page.locator('#modal .close').click();
+  for(const category of Object.keys(data))data[category]=data[category].filter(p=>!p.id.startsWith('layout-'));
+  await page.evaluate(()=>loadDynamicCatalog());
   fail=true;assert.equal(await page.evaluate(()=>loadDynamicCatalog()),false);
   assert.equal(await page.evaluate(()=>window.ZTCatalogState.mode),'fallback');
   assert.equal(await page.evaluate(()=>allProducts.length),53);

@@ -13,7 +13,7 @@ const root = path.resolve(__dirname, '..');
 function load(file, dependencies) {
   const sandbox = {
     module: { exports: {} }, __dirname: path.dirname(path.join(root, file)),
-    require(name) { if (name === 'crypto') return require('node:crypto'); if (!(name in dependencies)) throw Error('Unexpected dependency: ' + name); return dependencies[name]; },
+    require(name) { if (name === './price') return require('../bot/src/price'); if (name === 'crypto') return require('node:crypto'); if (!(name in dependencies)) throw Error('Unexpected dependency: ' + name); return dependencies[name]; },
     console: { log() {}, warn() {}, error(...args) { throw Error(args.join(' ')); } },
     Buffer, setTimeout, clearTimeout, Intl, URL
   };
@@ -60,6 +60,31 @@ test('search suggests existing products with reordered words, inflections and pa
   assert.deepEqual(Array.from(await products.searchByName('белыми розами'),m=>m.product.id),[white.id]);
   assert.equal((await products.searchByName('белые орхидеи')).length,0);
   assert.equal((await products.searchByName('для из')).length,0);
+});
+
+test('free price labels survive normal and business product editing without concatenating range digits',async()=>{
+ const pricing=require('../bot/src/price');const {api}=makeObjectStorage(),products=loadProducts(api);
+ for(const label of ['Товар под заказ','от 1000 руб.','1000-2000 руб.','Любой текст '.repeat(1000)]){
+  const parsed=pricing.parse(label);assert.equal(parsed.price,null);assert.equal(parsed.priceLabel,label.trim());
+  const item=await products.saveProduct('Розы',null,{name:'Свободная цена',...parsed,stock:1,photos:[]});
+  assert.equal((await products.getProductById(item.id)).priceLabel,label.trim());
+  await products.updateHit(item.id,true);assert.equal((await products.getProductById(item.id)).price,null);
+ }
+ assert.equal(pricing.parse('1 000 ₽').price,1000);assert.equal(pricing.parse('1000,50 руб.').price,1000.5);
+ const business=await products.saveProduct('Для бизнеса',null,{name:'Оформление',photos:['/photo.jpg'],photoPrices:[null],photoPriceLabels:['от 1000 ₽']});
+ assert.equal(business.price,null);assert.equal(business.priceLabel,'от 1000 ₽');
+});
+
+test('bot accepts arbitrary price text for a regular product and each business photo',async()=>{
+ const env=makeAdminEnv(),id='999';
+ for(const text of ['Товар под заказ','от 1000 руб.','1000-2000 руб.']){
+  let session={step:'admin_field_price',draft:{category:'Розы',photos:[],name:'Тест'}};
+  await env.admin.handleMessage({message:{body:{text}}},id,session);
+  assert.equal(env.sessions[id].draft.price,null);assert.equal(env.sessions[id].draft.priceLabel,text);
+  session={step:'admin_biz_price',pendingPhotoUrl:'/photo.jpg',draft:{category:'Для бизнеса',photos:[],photoPrices:[]}};
+  await env.admin.handleMessage({message:{body:{text}}},id,session);
+  assert.equal(env.sessions[id].draft.photoPrices[0],null);assert.equal(env.sessions[id].draft.photoPriceLabels[0],text);
+ }
 });
 
 test('saveProduct builds the site schema: composition + height go into description, other text goes into note', async () => {

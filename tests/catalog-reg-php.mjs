@@ -68,7 +68,7 @@ export async function runCatalogReview(php,root) {
   const response=await request(options.method,options.body||'',options.headers,new URL(url).search);
   return new Response(JSON.stringify(response.data),{status:response.status,headers:{etag:revision()}});
  }});
- const products=load('bot/src/products.js',{'./config':botConfig,'./catalogClient':client});
+ const products=load('bot/src/products.js',{'./config':botConfig,'./catalogClient':client,'./price':require(path.join(root,'bot/src/price.js'))});
  const id=seed['Розы'][0].id;
  await products.updateStock(id,4);assert.equal((await request('GET')).data['Розы'][0].stock,4);
  const newPhoto=await products.uploadPhoto(png,'image/png');
@@ -76,6 +76,13 @@ export async function runCatalogReview(php,root) {
  let displayed=(await request('GET')).data['Розы'][0];assert.equal(displayed.id,added.id);assert.equal(displayed.images[0],newPhoto);assert.equal(displayed.price,1234);
  await products.saveProduct('Розы',added.id,{name:'Изменённое название',price:1500,stock:2,photos:[newPhoto],composition:[],isHit:true});
  displayed=(await request('GET')).data['Розы'][0];assert.equal(displayed.name,'Изменённое название');assert.equal(displayed.price,1500);
+ for(const label of ['Товар под заказ','от 1000 руб.','1000–2000 ₽','<текст> & любые символы','Длинная цена '.repeat(500)]){
+  await products.saveProduct('Розы',added.id,{name:'Текстовая цена',price:null,priceLabel:label,stock:2,photos:[newPhoto],composition:[]});
+  const read=(await request('GET')).data['Розы'].find(p=>p.id===added.id);assert.equal(read.price,null);assert.equal(read.priceLabel,label);
+ }
+ const business=await products.saveProduct('Для бизнеса',null,{name:'Свободная цена оформления',photos:[newPhoto],photoPrices:[null],photoPriceLabels:['от 1000 ₽']});
+ assert.equal(business.price,null);assert.equal((await request('GET')).data['Для бизнеса'].find(p=>p.id===business.id).photoPriceLabels[0],'от 1000 ₽');
+ await products.deleteProductById(business.id);
  await products.updateHit(added.id,false);assert.equal((await products.getProductById(added.id)).isHit,false);
  await products.deleteProductById(added.id);assert.equal((await request('GET')).data['Розы'].some(p=>p.id===added.id),false);
  await assert.rejects(products.saveProduct('Розы',added.id,{name:'Deleted',price:1,stock:1,photos:[newPhoto]}),/уже удалён/);

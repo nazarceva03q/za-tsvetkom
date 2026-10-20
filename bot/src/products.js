@@ -1,4 +1,5 @@
 // Shared REG.RU catalogue; private bot sessions remain in Yandex.
+const pricing = require('./price');
 const objectStorage = require('./catalogClient');
 
 const CATALOG_KEY = 'catalog.json';
@@ -44,7 +45,7 @@ async function getCatalog() {
     for(const p of catalog[name]){
       if(!p || typeof p.id!=='string' || !/^[a-z0-9-]{1,100}$/.test(p.id) || ids.has(p.id) ||
         p.category!==name || typeof p.name!=='string' || !Array.isArray(p.images) ||
-        !Number.isFinite(p.price) || p.price<=0 || (p.stock!==null && (!Number.isInteger(p.stock)||p.stock<0||p.stock>10000)))
+        (p.price===null?!p.priceLabel:(!Number.isFinite(p.price) || p.price<=0)) || (p.stock!==null && (!Number.isInteger(p.stock)||p.stock<0||p.stock>10000)))
         throw new Error('Invalid product in stored catalog');
       ids.add(p.id);
     }
@@ -145,7 +146,9 @@ async function saveProduct(category, id, fields) {
   let product;
 
   if (isBusinessCategory(category)) {
-    const photoPrices = (fields.photoPrices || []).map(Number);
+    const photoPrices = (fields.photoPrices || []).map(p=>p===null?null:Number(p));
+    const photoPriceLabels=(fields.photoPriceLabels||[]).slice();
+    const summary=pricing.business(photoPrices,photoPriceLabels);
     product = Object.assign({}, existing, {
       id: finalId,
       slug: finalId,
@@ -154,10 +157,12 @@ async function saveProduct(category, id, fields) {
       perStand: Boolean(fields.perStand !== undefined ? fields.perStand : existing && existing.perStand),
       description: fields.description || '',
       note: BUSINESS_NOTE,
-      price: Math.min(...photoPrices),
-      maxPrice: Math.max(...photoPrices),
+      price: summary.price,
+      maxPrice: summary.maxPrice,
+      priceLabel:summary.priceLabel,
       images: fields.photos || [],
       photoPrices,
+      photoPriceLabels,
       category,
       tags: 'шары оформление для бизнеса',
       stock: null,
@@ -177,7 +182,8 @@ async function saveProduct(category, id, fields) {
       id: finalId,
       slug: finalId,
       name: fields.name,
-      price: Number(fields.price),
+      price: fields.price===null?null:Number(fields.price),
+      priceLabel:fields.priceLabel||'',
       category,
       description: descParts.join(' · '),
       note: madeToOrder ? BALLOON_ORDER_NOTE : note,

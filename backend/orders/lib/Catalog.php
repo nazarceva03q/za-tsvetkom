@@ -12,10 +12,13 @@ function validate(array $catalog, string $public, string $origin): void {
         foreach ($catalog[$category] as $p) {
             if (++$count > 5000 || !is_array($p) || !preg_match('/^[a-z0-9-]{1,100}$/D', $p['id'] ?? '') || isset($ids[$p['id']])
                 || ($p['category'] ?? '') !== $category || !is_string($p['name'] ?? null) || trim($p['name']) === '' || strlen($p['name']) > 1020
-                || (!is_int($p['price'] ?? null) && !is_float($p['price'] ?? null)) || !is_finite((float)$p['price']) || $p['price'] <= 0 || $p['price'] > 10000000
+                || !array_key_exists('price', $p)
+                || ($p['price'] === null ? (!is_string($p['priceLabel'] ?? null) || trim($p['priceLabel']) === '')
+                    : ((!is_int($p['price']) && !is_float($p['price'])) || !is_finite((float)$p['price']) || $p['price'] <= 0 || $p['price'] > 10000000))
                 || !array_key_exists('stock', $p) || ($p['stock'] !== null && (!is_int($p['stock']) || $p['stock'] < 0 || $p['stock'] > 10000))
                 || !is_array($p['images'] ?? null) || !array_is_list($p['images']) || count($p['images']) < 1 || count($p['images']) > 20) throw new \InvalidArgumentException('product');
             $ids[$p['id']] = true;
+            if (isset($p['priceLabel']) && !is_string($p['priceLabel'])) throw new \InvalidArgumentException('price label');
             foreach (['description','note','badge','tags','slug'] as $field) if (isset($p[$field]) && (!is_string($p[$field]) || strlen($p[$field]) > 16000)) throw new \InvalidArgumentException('text');
             foreach ($p['images'] as $image) {
                 if (!is_string($image) || preg_match('/[\x00-\x20<>"\'\\\\]/', $image)) throw new \InvalidArgumentException('image');
@@ -33,8 +36,12 @@ function validate(array $catalog, string $public, string $origin): void {
             if (!empty($p['business'])) {
                 $prices = $p['photoPrices'] ?? null;
                 if (!is_array($prices) || count($prices) !== count($p['images']) || !$prices) throw new \InvalidArgumentException('photo prices');
-                foreach ($prices as $price) if ((!is_int($price) && !is_float($price)) || $price <= 0 || $price > 10000000) throw new \InvalidArgumentException('photo price');
-                if ($p['price'] != min($prices) || ($p['maxPrice'] ?? null) != max($prices)) throw new \InvalidArgumentException('price range');
+                foreach ($prices as $index=>$price) {
+                    if ($price === null) {
+                        if (!is_string($p['photoPriceLabels'][$index] ?? null) || trim($p['photoPriceLabels'][$index]) === '') throw new \InvalidArgumentException('photo price label');
+                    } elseif ((!is_int($price) && !is_float($price)) || $price <= 0 || $price > 10000000) throw new \InvalidArgumentException('photo price');
+                }
+                if ($p['price'] !== null && (in_array(null,$prices,true) || $p['price'] != min($prices) || ($p['maxPrice'] ?? null) != max($prices))) throw new \InvalidArgumentException('price range');
             }
         }
     }

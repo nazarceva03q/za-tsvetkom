@@ -31,6 +31,7 @@ const vkApi = require('./vkApi');
 const store = require('./store');
 const products = require('./products');
 const config = require('./config');
+const pricing = require('./price');
 
 const REGULAR_FIELD_ORDER = ['photos', 'name', 'composition', 'extra', 'price', 'stock'];
 
@@ -104,7 +105,7 @@ function fieldPrompt(field, hasPhotos) {
     return 'Напишите описание / доп. информацию (например, высота цветка или другое). ' +
       'Если ничего писать не нужно, поставьте прочерк -.';
   }
-  if (field === 'price') return 'Напишите цену со знаком ₽';
+  if (field === 'price') return pricing.prompt;
   if (field === 'stock') return 'Напишите количество, которое в наличии. Если товар под заказ, поставьте прочерк -.';
   return 'Напишите значение';
 }
@@ -199,12 +200,7 @@ async function handleTextField(userId, session, field, text) {
   } else if (field === 'extra') {
     session.draft.extraInfo = /^-+$/.test(value) ? '' : value;
   } else if (field === 'price') {
-    const digits = value.replace(/[^\d.]/g, '');
-    if (!digits || Number(digits) <= 0) {
-      await vkApi.sendMessage({ userId }, 'Не вижу цифр в цене. Напишите ещё раз, например: 2500', [backRow()]);
-      return;
-    }
-    session.draft.price = Math.round(Number(digits));
+    Object.assign(session.draft, pricing.parse(value));
   } else if (field === 'stock') {
     if (/^-+$/.test(value)) {
       session.draft.stock = null;
@@ -315,7 +311,7 @@ async function handleBizPhotoStep(update, userId, session) {
     session.pendingPhotoUrl = publicUrl;
     session.step = 'admin_biz_price';
     await store.setSession(userId, session);
-    await vkApi.sendMessage({ userId }, 'Оформление на фото: (напишите цену со знаком ₽)', [backRow()]);
+    await vkApi.sendMessage({ userId }, 'Оформление на фото. '+pricing.prompt, [backRow()]);
   } catch (e) {
     console.error('[admin] ошибка загрузки фото:', e.message);
     await vkApi.sendMessage({ userId }, '⚠️ Не удалось загрузить фото, попробуйте ещё раз.', bizPhotoStepRows(hasPhotos));
@@ -327,15 +323,13 @@ async function handleBizPriceText(userId, session, text) {
     await vkApi.sendMessage({ userId }, 'Напишите цену, пожалуйста.', [backRow()]);
     return;
   }
-  const digits = text.replace(/[^\d.]/g, '');
-  if (!digits || Number(digits) <= 0) {
-    await vkApi.sendMessage({ userId }, 'Не вижу цифр в цене. Напишите ещё раз, например: 8500', [backRow()]);
-    return;
-  }
+  const entered = pricing.parse(text);
+  session.draft.photoPriceLabels = (session.draft.photos || []).map((_,i)=>pricing.format((session.draft.photoPrices||[])[i],(session.draft.photoPriceLabels||[])[i]));
   session.draft.photos = session.draft.photos || [];
   session.draft.photoPrices = session.draft.photoPrices || [];
   session.draft.photos.push(session.pendingPhotoUrl);
-  session.draft.photoPrices.push(Math.round(Number(digits)));
+  session.draft.photoPrices.push(entered.price);
+  session.draft.photoPriceLabels.push(entered.priceLabel);
   delete session.pendingPhotoUrl;
   session.step = 'admin_biz_photo';
   await store.setSession(userId, session);
@@ -440,7 +434,7 @@ async function sendBizPhotoManageMenu(userId, session) {
   await store.setSession(userId, session);
   const photos = session.draft.photos || [];
   const prices = session.draft.photoPrices || [];
-  const lines = photos.map((url, i) => (i + 1) + '. Оформление на фото: ' + money(prices[i]) + ' ₽');
+  const lines = photos.map((url, i) => (i + 1) + '. Оформление на фото: ' + pricing.format(prices[i],(session.draft.photoPriceLabels||[])[i]));
   await vkApi.sendMessage({ userId }, 'Фото товара (' + photos.length + ' шт.):\n' + lines.join('\n'), bizPhotoManageRows(photos));
 }
 
@@ -451,6 +445,7 @@ async function removeBizPhoto(userId, session, index) {
   if (index >= 0 && index < photos.length) {
     photos.splice(index, 1);
     prices.splice(index, 1);
+    if(session.draft.photoPriceLabels)session.draft.photoPriceLabels.splice(index,1);
   }
   session.draft.photos = photos;
   session.draft.photoPrices = prices;
@@ -511,7 +506,7 @@ function formatRegularPreviewText(draft) {
     lines.push('Состав: не указан');
   }
   lines.push('Описание/доп. информация: ' + (draft.extraInfo || 'не указано'));
-  lines.push('Цена: ' + money(draft.price) + ' ₽');
+  lines.push('Цена: ' + pricing.format(draft.price,draft.priceLabel));
   lines.push('Количество: ' + (draft.stock === null || draft.stock === undefined ? 'под заказ' : draft.stock + ' шт.'));
   lines.push('Фото: ' + (draft.photos || []).length + ' шт.');
   lines.push('Хит: ' + (draft.isHit ? 'да' : 'нет'));
@@ -521,13 +516,12 @@ function formatRegularPreviewText(draft) {
 function formatBusinessPreviewText(draft) {
   const lines = ['Проверьте товар перед публикацией:', '', 'Категория: Для бизнеса', 'Название: ' + draft.name];
   (draft.photos || []).forEach((url, i) => {
-    lines.push('Фото ' + (i + 1) + ' — Оформление на фото: ' + money((draft.photoPrices || [])[i]) + ' ₽');
+    lines.push('Фото ' + (i + 1) + ' — Оформление на фото: ' + pricing.format((draft.photoPrices || [])[i],(draft.photoPriceLabels||[])[i]));
   });
   lines.push('Описание: ' + (draft.note || products.BUSINESS_NOTE));
   const prices = draft.photoPrices || [];
-  const priceText = prices.length
-    ? (Math.min(...prices) === Math.max(...prices) ? money(Math.min(...prices)) + ' ₽' : money(Math.min(...prices)) + '–' + money(Math.max(...prices)) + ' ₽')
-    : '—';
+  const summary=pricing.business(prices,draft.photoPriceLabels);
+  const priceText = summary.priceLabel || (summary.price===summary.maxPrice?pricing.format(summary.price):pricing.format(summary.price)+' – '+pricing.format(summary.maxPrice));
   lines.push('Цена (считается автоматически по фото): ' + priceText);
   lines.push('Хит: ' + (draft.isHit ? 'да' : 'нет'));
   return lines.join('\n');
@@ -661,8 +655,8 @@ async function saveDraft(userId, session) {
   const isBusiness = products.isBusinessCategory(draft.category);
   try {
     const fields = isBusiness
-      ? { name: draft.name, photos: draft.photos, photoPrices: draft.photoPrices, note: draft.note, isHit: draft.isHit }
-      : { name: draft.name, price: draft.price, composition: draft.composition, extraInfo: draft.extraInfo, stock: draft.stock, photos: draft.photos, isHit: draft.isHit };
+      ? { name: draft.name, photos: draft.photos, photoPrices: draft.photoPrices, photoPriceLabels:draft.photoPriceLabels, note: draft.note, isHit: draft.isHit }
+      : { name: draft.name, price: draft.price, priceLabel:draft.priceLabel, composition: draft.composition, extraInfo: draft.extraInfo, stock: draft.stock, photos: draft.photos, isHit: draft.isHit };
     const product = await products.saveProduct(draft.category, draft.id, fields);
     await sendMenu(userId, '✅ Товар «' + product.name + '» опубликован на сайте (' + draft.category + ').');
   } catch (e) {
@@ -726,7 +720,7 @@ async function handleFindName(userId, session, text) {
   // One compact response avoids slow re-upload of up to five photos to VK,
   // webhook timeouts, partial result lists and repeated cards on delivery retry.
   const lines = matches.map(({product,category},i)=>
-    (i+1)+'. '+product.name+' — '+money(product.price)+' ₽ ('+category+')');
+    (i+1)+'. '+product.name+' — '+pricing.format(product.price,product.priceLabel)+' ('+category+')');
   const rows = matches.map(({product},i)=>[vkApi.callbackButton((i+1)+'. '+product.name,'find:pick:'+i)]);
   rows.push(backRow());
   await vkApi.sendMessage({userId},'Выберите товар:\n\n'+lines.join('\n'),rows);
@@ -793,6 +787,7 @@ async function pickMatch(userId, session, index) {
       name: product.name,
       photos: (product.images || []).slice(),
       photoPrices: (product.photoPrices || []).slice(),
+      photoPriceLabels:(product.photoPriceLabels||[]).slice(),
       note: product.note || products.BUSINESS_NOTE,
       isHit: Boolean(product.isHit)
     };
@@ -803,6 +798,7 @@ async function pickMatch(userId, session, index) {
       category: match.category,
       name: product.name,
       price: product.price,
+      priceLabel:product.priceLabel||'',
       composition,
       extraInfo: product.note || heightPart || '',
       stock: product.stock === undefined ? null : product.stock,
