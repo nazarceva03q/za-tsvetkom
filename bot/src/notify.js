@@ -89,7 +89,7 @@ async function sendLeadNotification(data) {
   });
 
   if (!config.ownerChatId) {
-    console.warn('[notify] VK_OWNER_ID не настроен, карточка не отправлена:\n' + text);
+    console.warn('[notify] EVENT_01');
     return { ok: false, text, repeatInfo };
   }
 

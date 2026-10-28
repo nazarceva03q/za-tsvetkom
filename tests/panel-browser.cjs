@@ -7,7 +7,11 @@ const server=http.createServer((req,res)=>{
  res.setHeader('Referrer-Policy','same-origin');
  if(req.method==='POST'){let body='';req.on('data',b=>body+=b);req.on('end',()=>{posted.push({origin:req.headers.origin,body:new URLSearchParams(body)});res.setHeader('Content-Type','text/plain');res.end('FORM_POST_CAPTURED');});return;}
  const url=new URL(req.url,'http://localhost');
- const file=url.pathname.endsWith('orders.css')?path.join(root,'owner/orders.css'):path.join(evidence,url.searchParams.has('id')?'panel-detail.html':'panel-list.html');
+ if(url.pathname==='/assets/catalog/panel-fixture.jpg'){
+  res.setHeader('Content-Type','image/jpeg');fs.createReadStream(path.join(root,'assets/products/ecuador-101-1.jpg')).pipe(res);return;
+ }
+ const fixture=url.searchParams.has('retention_detail')?'panel-retention-detail.html':url.searchParams.get('view')==='retention'?'panel-retention.html':url.searchParams.has('id')?'panel-detail.html':'panel-list.html';
+ const file=url.pathname.endsWith('orders.css')?path.join(root,'owner/orders.css'):path.join(evidence,fixture);
  res.setHeader('Content-Type',file.endsWith('.css')?'text/css':'text/html; charset=utf-8');fs.createReadStream(file).pipe(res);
 });
 (async()=>{
@@ -17,7 +21,12 @@ const server=http.createServer((req,res)=>{
  try{
   const page=await browser.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
   assert(fs.readFileSync(path.join(root,'owner/orders.php'),'utf8').includes("header('Referrer-Policy: same-origin')"),'real panel policy preserves form Origin');
-  await page.route('**/*',route=>new URL(route.request().url()).origin===origin?route.continue():route.abort());
+  await page.route('**/*',route=>{
+   const url=new URL(route.request().url());
+   if(url.origin===origin)return route.continue();
+   if(url.origin==='https://shop.test'&&url.pathname==='/assets/catalog/panel-fixture.jpg')return route.fulfill({contentType:'image/jpeg',body:fs.readFileSync(path.join(root,'assets/products/ecuador-101-1.jpg'))});
+   return route.abort();
+  });
   for(const width of [390,1280]){
    await page.setViewportSize({width,height:900});await page.goto(origin+'/owner/orders.php');
    await page.waitForSelector('.request');
@@ -27,7 +36,12 @@ const server=http.createServer((req,res)=>{
    await page.locator('.request').first().click();await page.waitForSelector('.phone');
    assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'detail horizontal overflow');
    assert((await page.locator('.phone').getAttribute('href')).startsWith('tel:+7'));
-   assert.equal(await page.locator('script,img').count(),0);
+   assert.equal(await page.locator('script').count(),0);
+   assert.ok(await page.locator('.request-photos img').count()>0);
+   await page.locator('.request-photos img').first().scrollIntoViewIfNeeded();
+   await page.waitForFunction(()=>{const img=document.querySelector('.request-photos img');return img&&img.complete&&img.naturalWidth>0;});
+   assert.ok(await page.locator('.request-photos img').first().evaluate(img=>img.complete&&img.naturalWidth>0));
+   assert.ok(await page.locator('.request-photos a').first().getAttribute('aria-label'));
    await page.screenshot({path:path.join(evidence,'panel-detail-'+width+'.png'),fullPage:true});
    if(await page.locator('form input[name=action][value=workflow]').count()){
     await page.locator('select[name=status]').selectOption('working');
@@ -42,6 +56,36 @@ const server=http.createServer((req,res)=>{
   assert.deepEqual(errors,[]);
   fs.writeFileSync(path.join(evidence,'panel-browser.json'),JSON.stringify({viewports:[390,1280],list:true,detail:true,noHorizontalOverflow:true,externalRequests:false,mode:'HTML rendered by isolated PHP with synthetic data; authentication tested separately'},null,2));
   assert.equal(posted.length,2,'workflow forms submitted at both widths');
-  console.log('PASS owner panel list/detail at 390 and 1280px, workflow form POST with correct Origin/CSRF, phone link, no scripts/images/external network');
+  for(const width of [390,1280]){
+   await page.setViewportSize({width,height:900});
+   await page.goto(origin+'/owner/orders.php?view=retention');
+   assert(await page.getByRole('heading',{name:'Проверка сроков',exact:true}).isVisible());
+   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'review list overflow');
+   await page.screenshot({path:path.join(evidence,'panel-retention-'+width+'.png'),fullPage:true});
+   await page.goto(origin+'/owner/orders.php?retention_detail=1');
+   await page.locator('#retention-review').scrollIntoViewIfNeeded();
+   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'review forms overflow');
+   assert.equal(await page.locator('.retention-form').count(),2);
+   await page.screenshot({path:path.join(evidence,'panel-retention-detail-'+width+'.png'),fullPage:true});
+   const keep=page.locator('.retention-form').first();
+   await keep.getByLabel('Причина').selectOption('awaiting_customer');
+   const tomorrow=new Date(Date.now()+86400000).toISOString().slice(0,10);
+   await keep.getByLabel('Следующая проверка — по Перми').fill(tomorrow);
+   await keep.getByRole('button',{name:'Ещё нужна',exact:true}).click();
+   await page.waitForSelector('body:has-text("FORM_POST_CAPTURED")');
+   assert.equal(posted.at(-1).body.get('decision'),'keep');assert.equal(posted.at(-1).origin,origin);
+   await page.goto(origin+'/owner/orders.php?retention_detail=1');
+   const ready=page.locator('.retention-form').last();
+   await ready.getByLabel('Когда обращение завершено или отменено').fill(await ready.locator('input[type=date]').getAttribute('max'));
+   const count=posted.length;
+   await ready.getByRole('button',{name:'Можно очистить',exact:true}).click();
+   assert.equal(posted.length,count,'browser requires cleanup confirmation');
+   await ready.getByRole('checkbox').check();
+   await ready.getByRole('button',{name:'Можно очистить',exact:true}).click();
+   await page.waitForSelector('body:has-text("FORM_POST_CAPTURED")');
+   assert.equal(posted.at(-1).body.get('confirm_clear'),'1');assert.equal(posted.at(-1).body.get('decision'),'ready');
+  }
+  assert.equal(posted.length,6,'both review forms submitted at both widths');
+  console.log('PASS owner panel list/detail at 390 and 1280px, local photo fixture with accessible links, workflow Origin/CSRF, phone link, no scripts/external network');
  }finally{await browser.close();await new Promise(r=>server.close(r))}
 })().catch(e=>{console.error(e);server.close();process.exitCode=1});

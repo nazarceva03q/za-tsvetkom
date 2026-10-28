@@ -25,9 +25,8 @@ function notificationText(array $order, array $items, string $timezone): string 
     $date=new \DateTimeImmutable($order['created_at'],new \DateTimeZone('UTC'));
     $type=requestTypes()[$order['request_type']??'legacy']??'Обращение';
     $lines=['Заявка '.$order['order_number'],$date->setTimezone(new \DateTimeZone($timezone))->format('d.m.Y H:i:s').' ('.$timezone.')',$type];
-    foreach($items as $item) $lines[]=$item['product_name'].' × '.(int)$item['quantity'];
-    $lines[]='Цена и наличие согласуются. Контакты и пожелания — в закрытой панели заявок.';
-    // No contact details, subject, comments, images, or unconfirmed prices in VK.
+    $lines[]='Контакты, пожелания и выбранные товары доступны в защищённой панели магазина по кнопке «Открыть заявку».';
+    // No customer-supplied text, contacts or product names in VK notifications.
     return implode("\n",$lines);
 }
 final class VkSender {
@@ -87,10 +86,10 @@ final class NotificationWorker {
                 $q = $this->db->prepare('SELECT order_number,kind,request_type,created_at,total_kopecks FROM zt_orders WHERE id=?');
                 $q->execute([$job['order_id']]); $order = $q->fetch(\PDO::FETCH_ASSOC);
                 if (!$order) throw new \RuntimeException('ORDER_MISSING');
-                $q = $this->db->prepare('SELECT product_name,quantity,line_total_kopecks FROM zt_order_items WHERE order_id=? ORDER BY id');
+                $q = $this->db->prepare('SELECT product_name,quantity,line_total_kopecks,product_snapshot FROM zt_order_items WHERE order_id=? ORDER BY id');
                 $q->execute([$job['order_id']]);
                 $text = notificationText($order, $q->fetchAll(\PDO::FETCH_ASSOC), $this->config['timezone']);
-                // Conservative single-message limit: do not silently omit products.
+                // Bounded preview, with an explicit link to the full product list.
                 if (mb_strlen($text, 'UTF-8') > 4096) {
                     $q = $this->db->prepare("UPDATE zt_notification_queue SET status='failed',last_error_code='MESSAGE_TOO_LONG' WHERE id=?");
                     $q->execute([$job['id']]); $this->db->commit(); return null;

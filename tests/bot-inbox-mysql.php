@@ -1,0 +1,57 @@
+<?php
+declare(strict_types=1);
+require_once '/private/lib/BotInbox.php';
+require_once '/private/lib/Repository.php';
+require_once '/private/lib/Validation.php';
+require_once '/private/lib/RetentionReview.php';
+if(!isset($lab)||!str_starts_with($lab['dsn'],'mysql:host=127.0.0.1;'))throw new RuntimeException('Local lab required');
+$db=ZTOrders\connect($lab);
+$check=static function(bool $v,string $label):void {if(!$v)throw new RuntimeException($label);echo "PASS inbox $label\n";};
+$cfg=['bot_inbox'=>['enabled'=>true,'secret'=>str_repeat('a',64),'viewer_ids'=>[88]],'notifications'=>['owner_id'=>99]];
+$headers=['HTTP_X_ZT_INBOX_KEY'=>str_repeat('a',64),'HTTP_X_ZT_VIEWER_ID'=>'99'];
+$check(ZTOrders\inboxAuthorized($cfg,$headers),'owner authorized');
+$check(!ZTOrders\inboxAuthorized($cfg,[]),'public blocked');
+$headers['HTTP_X_ZT_VIEWER_ID']='88';$check(ZTOrders\inboxAuthorized($cfg,$headers),'explicit second viewer');
+$headers['HTTP_X_ZT_VIEWER_ID']='77';$check(!ZTOrders\inboxAuthorized($cfg,$headers),'other user blocked');
+$headers['HTTP_X_ZT_VIEWER_ID']='99';$headers['HTTP_X_ZT_INBOX_KEY']='wrong';$check(!ZTOrders\inboxAuthorized($cfg,$headers),'wrong key blocked');
+$check(ZTOrders\inboxPhoto('https://foreign.test/assets/catalog/a.jpg','https://shop.test')===null,'foreign photo rejected');
+$check(ZTOrders\inboxPhoto('assets/../secret.jpg','https://shop.test')===null,'traversal rejected');
+mkdir('/fixture/catalog',0777,true);
+require_once '/private/lib/Catalog.php';
+$p=['id'=>'rose','name'=>'Розы','category'=>'Розы','images'=>['assets/catalog/rose.jpg'],'price'=>1234,'stock'=>2,'description'=>'5 роз'];
+ZTcatalog\writeState('/fixture/catalog',['catalog'=>['Розы'=>[$p]],'etag'=>ZTcatalog\revision(['Розы'=>[$p]]),'receipts'=>[]]);
+$request=['subject'=>'Корзина','items'=>[['id'=>'rose','name'=>'Имя из браузера','quantity'=>2]]];
+$priced=ZTOrders\enrichRequestItems($request,ZTOrders\requestItems($request),'/fixture');
+$check($priced['items'][0]['snapshot']['images'][0]==='assets/catalog/rose.jpg','photo captured from local catalog');
+$check($priced['items'][0]['unitPriceKopecks']===null,'snapshot not confirmed price');
+$inquiry=['subject'=>'Букет из шаров: Розы','items'=>[]];
+$reference=ZTOrders\enrichRequestItems($inquiry,ZTOrders\requestItems($inquiry),'/fixture');
+$check($reference['items'][0]['snapshot']['inquiryReference']===true,'product inquiry reference');
+// Real database projection, repeat logic and deletion. Roll back every fixture.
+$db->beginTransaction();
+try {
+ $sql='INSERT INTO zt_orders(id,order_number,idempotency_key,request_hash,kind,subject,customer_name,phone,contact_channel,delivery_address,comment,consent_version,consent_text_sha256,consent_at,request_type,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(),?,?)';
+ $q=$db->prepare($sql);
+ for($i=1;$i<=2;$i++)$q->execute([str_repeat((string)$i,32),'ZT-'.str_repeat((string)$i,16),str_repeat((string)($i+7),64),str_repeat('a',64),'order','Корзина','Тест','79998887766','VK','Адрес','Пожелания','test',str_repeat('b',64),'cart','2026-10-20 10:00:0'.$i]);
+ $q=$db->prepare('INSERT INTO zt_order_items(order_id,product_id,product_name,quantity,made_to_order,product_snapshot) VALUES(?,?,?,?,0,?)');
+ $q->execute([str_repeat('2',32),'rose','Розы',2,ZTOrders\encode($priced['items'][0]['snapshot'])]);
+ $first=ZTOrders\inboxDetail($db,'ZT-'.str_repeat('1',16),'https://shop.test');
+ $second=ZTOrders\inboxDetail($db,'ZT-'.str_repeat('2',16),'https://shop.test');
+ $check($first['previousRequests']===0&&$second['previousRequests']===1,'first versus repeat by phone and chronology');
+ $check($second['createdAt']==='20.10.2026 15:00 (Пермь)','UTC converted to Perm');
+ $check($second['items'][0]['photos'][0]==='https://shop.test/assets/catalog/rose.jpg','photo projected');
+ $check(!str_contains(json_encode($second),'idempotency')&&!str_contains(json_encode($second),'consent_text_sha256'),'private internals not exposed');
+ $db->exec("UPDATE zt_orders SET erased_at=UTC_TIMESTAMP() WHERE id=REPEAT('1',32)");
+ $check(ZTOrders\inboxDetail($db,'ZT-'.str_repeat('1',16),'https://shop.test')===null,'erased detail absent');
+ $check(ZTOrders\inboxDetail($db,'ZT-'.str_repeat('2',16),'https://shop.test')['previousRequests']===0,'erased phone excluded from history');
+ $list=ZTOrders\inboxList($db,0);$check(count($list['items'])<=4,'bounded list');
+} finally {$db->rollBack();}
+file_put_contents('/fixture/catalog/state.json','broken');
+$fallback=ZTOrders\enrichRequestItems($request,ZTOrders\requestItems($request),'/fixture');
+$check(!isset($fallback['items'][0]['snapshot']['images']),'catalog failure does not reject request');
+$check(ZTOrders\requestReviewAt(['created_at'=>'2026-10-20 10:00:00'])->format('Y-m-d H:i:s')==='2026-11-19 10:00:00','review after 30 days, not completion inference');
+$check(ZTOrders\requestReviewAt(['created_at'=>'2026-10-20 10:00:00','desired_date'=>'2026-12-31'])->format('Y-m-d H:i:s')==='2027-01-30 19:00:00','future requested day preserved in Perm timezone');
+$before=(int)$db->query('SELECT COUNT(*) FROM zt_orders')->fetchColumn();
+$review=ZTOrders\retentionReview($db,new DateTimeImmutable('2030-01-01',new DateTimeZone('UTC')));
+$check($review['deleted']===0&&$review['mode']==='REVIEW_ONLY','review cannot delete');
+$check((int)$db->query('SELECT COUNT(*) FROM zt_orders')->fetchColumn()===$before,'review leaves orders intact');

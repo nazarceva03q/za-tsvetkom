@@ -37,6 +37,20 @@ test('definitive validation rejection permits correction without clearing basket
  assert.equal(s.getItem('zt:checkout-pending-v1'),null);assert.equal(s.getItem('zt:cart'),'{"rose":3}');
  await client.submit({...payload(),name:'Исправлено'});
 });
+test('erased request after network ambiguity stops retry and requires a fresh explicit submit',async()=>{
+ const s=storage({'zt:cart':'{"rose":3}'}),keys=[];
+ const client=createClient({storage:s,crypto,fetch:async(url,options)=>{
+  keys.push(options.headers['Idempotency-Key']);
+  if(keys.length===1)throw Error('lost response');
+  if(keys.length===2)return response(409,{ok:false,saved:false,code:'REQUEST_ERASED',message:'Заявка удалена'});
+  return response(201,saved);
+ }});
+ await assert.rejects(client.submit(payload()),{code:'NETWORK'});
+ await assert.rejects(client.submit(payload()),{code:'REQUEST_ERASED',uncertain:false});
+ assert.equal(keys.length,2);assert.equal(keys[0],keys[1]);
+ assert.equal(s.getItem('zt:checkout-pending-v1'),null);assert.equal(s.getItem('zt:cart'),'{"rose":3}');
+ await client.submit(payload());assert.equal(keys.length,3);assert.notEqual(keys[1],keys[2]);
+});
 test('denied durable storage stops before network',async()=>{
  let calls=0;const s=storage();s.setItem=()=>{throw Error('storage denied')};
  await assert.rejects(createClient({storage:s,crypto,fetch:async()=>{calls++;return response(201,saved)}}).submit(payload()));assert.equal(calls,0);

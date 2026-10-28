@@ -20,8 +20,9 @@ STATIC_DIRS = {
 def public_files(root):
     root = Path(root).resolve()
     files = list(ROOT_FILES)
-    if (root / 'consent.html').exists():
-        files.append('consent.html')
+    for document in ('consent.html','returns.html'):
+        if (root / document).exists():
+            files.append(document)
     for directory, extensions in STATIC_DIRS.items():
         base = root / directory
         if base.is_symlink():

@@ -194,8 +194,11 @@ function makeAdminEnv() {
     clearSession: async (id) => { delete sessions[id]; },
     getLeadsPage: async () => ({ items: [], total: 0 })
   };
-  const admin = load('bot/src/admin.js', { './config': config, './vkApi': vkApiMock, './store': storeMock, './products': productsModule });
-  return { admin, sessions, owner, products: productsModule, downloadedUrls, vkApi:vkApiMock };
+  const inboxCalls=[],panelCalls=[];
+  const admin = load('bot/src/admin.js', { './config': config, './vkApi': vkApiMock, './store': storeMock, './products': productsModule,
+    './inbox':{list:async(id,offset)=>inboxCalls.push({id,offset}),handle:async()=>true},
+    './requestPanel':{send:async(id,number)=>panelCalls.push({id,number})} });
+  return { admin, sessions, owner, products: productsModule, downloadedUrls, vkApi:vkApiMock, inboxCalls, panelCalls };
 }
 
 test('full "add product" flow for a regular category publishes with the site schema and asks the Hit question', async () => {
@@ -365,11 +368,12 @@ test('failed catalog write does not report a successful hit update', async () =>
  await assert.rejects(products.updateHit(p.id,true),/REG.RU/);
 });
 
-test('requests button sends a working protected-panel link',async()=>{
+test('requests and old inbox buttons open the protected panel by default, without reading contacts',async()=>{
  const env=makeAdminEnv();await env.admin.sendMenu('999');
  await env.admin.handleCallback('999',env.sessions['999'],'admin:leads');
- const message=env.owner.at(-1);assert.match(message.text,/закрытой панели/);
- assert.equal(message.rows[0][0].type,'open_link');assert.equal(message.rows[0][0].link,config.ownerOrdersUrl);
+ await env.admin.handleCallback('999',env.sessions['999'],'inbox:open:ZT-1234567890ABCDEF');
+ assert.deepEqual(env.inboxCalls,[]);
+ assert.deepEqual(env.panelCalls,[{id:'999',number:undefined},{id:'999',number:'ZT-1234567890ABCDEF'}]);
 });
 test('stock prompt, exact validation, zero stock and deleted item handling',async()=>{
  const env=makeAdminEnv(),id='999';

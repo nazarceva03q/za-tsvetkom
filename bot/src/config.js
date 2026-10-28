@@ -33,7 +33,9 @@ const adminChatIds = Array.from(new Set([ownerChatId, ...extraAdminIds].filter(B
 
 const config = {
   siteRelaySecret: process.env.SITE_RELAY_SECRET || '',
+  siteRelayRequireExpiry: process.env.SITE_RELAY_REQUIRE_EXPIRY === 'true',
   ownerOrdersUrl: process.env.OWNER_ORDERS_URL || 'https://xn----ctbjb9aqim7a5cq.online/owner/orders.php',
+  requestsInVkEnabled: process.env.REQUESTS_IN_VK_ENABLED === 'true', // default: protected site panel
   botToken: process.env.VK_GROUP_TOKEN || '',
   groupId: process.env.VK_GROUP_ID || '',
   confirmationToken: process.env.VK_CONFIRMATION_TOKEN || '',
@@ -55,6 +57,8 @@ const config = {
     secretKey: process.env.YC_S3_SECRET_KEY || ''
   },
   regCatalogUrl: process.env.REG_CATALOG_URL || '',
+  regInboxUrl: process.env.REG_INBOX_URL || 'https://xn----ctbjb9aqim7a5cq.online/api/v1/bot-inbox.php',
+  regInboxSecret: process.env.REG_INBOX_SECRET || '',
   regCatalogSecret: process.env.REG_CATALOG_SECRET || ''
 };
 

@@ -13,3 +13,21 @@ fix-refinement.cjs
 update-layout.cjs
 check*.cjs
 final-assets-check.cjs
+
+# Local customer/deployment artifacts never belong in the public repository.
+docs/private/
+docs/legal/
+docs/simplified/
+.release-backups/
+graphify-out/
+bot/*.zip
+~$*
+**/~$*
+**/restore-ledger*.json
+**/SHA-256*.txt
+Реестр удаления*/
+Проверка восстановления*/
+резервные копии рег/
+docs/simplified/DEVELOPER-DATA-ACCESS-*.md
+docs/simplified/*access-agreement*.docx
+docs/simplified/Соглашение*.docx

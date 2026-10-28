@@ -6,7 +6,7 @@ header('X-Robots-Tag: noindex, nofollow');
 header('X-Content-Type-Options: nosniff');
 // Preserve Origin for same-site HTML form POSTs; do not disclose referrers externally.
 header('Referrer-Policy: same-origin');
-header("Content-Security-Policy: default-src 'none'; style-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+header("Content-Security-Policy: default-src 'none'; style-src 'self'; img-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
 if (($_SERVER['HTTPS'] ?? '') !== 'on' && (string)($_SERVER['SERVER_PORT'] ?? '') !== '443') {
     http_response_code(403); echo 'Требуется HTTPS.'; exit;
 }

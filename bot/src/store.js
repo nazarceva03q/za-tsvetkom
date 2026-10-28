@@ -114,21 +114,66 @@ async function getLeadsPage(offset, limit) {
 }
 
 // – Состояние диалога с конкретным пользователем (шаг сценария, что уже собрано) –
+// Administrative drafts expire after 24 hours without a write. This is a
+// technical timeout, not a statutory retention period for customer requests.
+const SESSION_IDLE_MS = 24 * 60 * 60 * 1000;
+function pruneSessions(sessions, now = Date.now()) {
+  let changed = false;
+  for (const id of Object.keys(sessions)) {
+    const updated = Date.parse(sessions[id]?.updatedAt);
+    if (!Number.isFinite(updated) || updated > now || now - updated >= SESSION_IDLE_MS) {
+      delete sessions[id]; changed = true;
+    }
+  }
+  return changed;
+}
 async function getSession(userId) {
-  const sessions = await readJson('sessions', {});
-  return sessions[userId] || { step: 'idle' };
+  return mutateSessions(sessions => ({changed:pruneSessions(sessions), value:sessions[userId] || {step:'idle'}}));
 }
 
 async function setSession(userId, session) {
-  const sessions = await readJson('sessions', {});
-  sessions[userId] = session;
-  await writeJson('sessions', sessions);
+  await mutateSessions(sessions => {
+    pruneSessions(sessions);
+    sessions[userId] = { ...session, updatedAt: new Date().toISOString() };
+    return {changed:true};
+  });
 }
 
 async function clearSession(userId) {
-  const sessions = await readJson('sessions', {});
-  delete sessions[userId];
-  await writeJson('sessions', sessions);
+  await mutateSessions(sessions => {
+    const changed = Object.hasOwn(sessions,userId);
+    delete sessions[userId];
+    return {changed};
+  });
+}
+
+// A timer and the bot may run concurrently. Every session writer uses the same
+// ETag guard, so pruning cannot overwrite a draft saved after the timer read it.
+async function mutateSessions(change) {
+  for (let attempt=0; attempt<4; attempt++) {
+    const snapshot = USE_S3
+      ? await objectStorage.getJsonWithVersion(config.s3,'sessions.json',{})
+      : {data:await readJson('sessions',{}),etag:null};
+    const sessions=snapshot.data;
+    if (!sessions || typeof sessions!=='object' || Array.isArray(sessions)) throw Error('INVALID_SESSIONS');
+    const result=change(sessions);
+    if (!result.changed) return result.value;
+    if (!USE_S3) { await writeJson('sessions',sessions); return result.value; }
+    try {
+      await objectStorage.putJsonIfVersion(config.s3,'sessions.json',sessions,snapshot.etag);
+      return result.value;
+    } catch (error) {
+      if (error.code!=='STORAGE_VERSION_CONFLICT' || attempt===3) throw error;
+    }
+  }
+}
+
+async function cleanupExpiredSessions() {
+  return mutateSessions(sessions => {
+    const before=Object.keys(sessions).length;
+    const changed=pruneSessions(sessions);
+    return {changed,value:{removed:before-Object.keys(sessions).length}};
+  });
 }
 
 // Stable message/callback IDs are claimed atomically and retained across restarts.
@@ -172,6 +217,7 @@ module.exports = {
   getSession,
   setSession,
   clearSession,
+  cleanupExpiredSessions,
   wasRecentlyProcessed,
   hasProcessedEvent: async (id) => Boolean(await readJson('processed_updates/' + crypto.createHash('sha256').update(id).digest('hex'), null)),
   markProcessedEvent: async (id) => {

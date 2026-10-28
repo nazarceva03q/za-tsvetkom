@@ -1,0 +1,3 @@
+# Patch context intentionally contains leading-space blank lines.
+*.patch -whitespace
+*.diff -whitespace

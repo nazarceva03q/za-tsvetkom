@@ -116,25 +116,25 @@ async function getJson(config, objectKey, fallback) {
     }
     return JSON.parse(res.body);
   } catch (e) {
-    console.error('[objectStorage] GET ' + objectKey + ' упал:', e.message);
+    console.error('[objectStorage] EVENT_01');
     throw e;
   }
 }
 
 async function putJson(config, objectKey, data) {
   if (!config.bucket || !config.accessKey || !config.secretKey) {
-    console.warn('[objectStorage] YC_S3_* не настроены, запись', objectKey, 'пропущена');
+    console.warn('[objectStorage] EVENT_02');
     return false;
   }
   try {
     const res = await request('PUT', objectKey, JSON.stringify(data, null, 2), config, { 'Content-Type': 'application/json' });
     if (res.status !== 200) {
-      console.error('[objectStorage] PUT ' + objectKey + ' -> ' + res.status, res.body);
+      console.error('[objectStorage] EVENT_03');
       return false;
     }
     return true;
   } catch (e) {
-    console.error('[objectStorage] PUT ' + objectKey + ' упал:', e.message);
+    console.error('[objectStorage] EVENT_04');
     return false;
   }
 }
@@ -147,18 +147,18 @@ async function putJson(config, objectKey, data) {
 // putJson выше, просто с телом-Buffer и своим Content-Type.
 async function putObject(config, objectKey, buffer, contentType) {
   if (!config.bucket || !config.accessKey || !config.secretKey) {
-    console.warn('[objectStorage] YC_PUBLIC_S3_BUCKET/YC_S3_* не настроены, загрузка', objectKey, 'пропущена');
+    console.warn('[objectStorage] EVENT_05');
     return false;
   }
   try {
     const res = await request('PUT', objectKey, buffer, config, { 'Content-Type': contentType || 'application/octet-stream' });
     if (res.status !== 200) {
-      console.error('[objectStorage] PUT(binary) ' + objectKey + ' -> ' + res.status, res.body);
+      console.error('[objectStorage] EVENT_06');
       return false;
     }
     return true;
   } catch (e) {
-    console.error('[objectStorage] PUT(binary) ' + objectKey + ' упал:', e.message);
+    console.error('[objectStorage] EVENT_07');
     return false;
   }
 }
@@ -178,18 +178,18 @@ function publicUrl(config, objectKey) {
 // обычной навигации и не к curl/серверным запросам.
 async function putBucketCors(config, corsXml) {
   if (!config.bucket || !config.accessKey || !config.secretKey) {
-    console.warn('[objectStorage] YC_S3_*/YC_PUBLIC_S3_BUCKET не настроены, настройка CORS пропущена');
+    console.warn('[objectStorage] EVENT_08');
     return false;
   }
   try {
     const res = await request('PUT', '', corsXml, config, { 'Content-Type': 'application/xml' }, 'cors=');
     if (res.status !== 200) {
-      console.error('[objectStorage] PUT ?cors -> ' + res.status, res.body);
+      console.error('[objectStorage] EVENT_09');
       return false;
     }
     return true;
   } catch (e) {
-    console.error('[objectStorage] PUT ?cors упал:', e.message);
+    console.error('[objectStorage] EVENT_10');
     return false;
   }
 }
@@ -214,7 +214,11 @@ async function putJsonIfVersion(config, objectKey, data, etag) {
   if (!config.bucket || !config.accessKey || !config.secretKey) throw new Error('Object Storage is not configured');
   const condition=etag ? {'If-Match':etag} : {'If-None-Match':'*'};
   const res=await request('PUT',objectKey,JSON.stringify(data,null,2),config,{'Content-Type':'application/json',...condition});
-  if(res.status===412 || res.status===409) throw new Error('Catalog changed concurrently; reload before saving');
+  if(res.status===412 || res.status===409) {
+    const error = new Error('Catalog changed concurrently; reload before saving');
+    error.code = 'STORAGE_VERSION_CONFLICT';
+    throw error;
+  }
   if(res.status!==200) throw new Error('Catalog write failed: HTTP '+res.status);
   return true;
 }

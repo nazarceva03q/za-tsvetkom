@@ -233,11 +233,11 @@ async function handleUpdate(update) {
   try {
     const userId = extractUserId(update);
     if (!userId) {
-      console.warn('[bot] апдейт без определяемого user_id, пропущено:', JSON.stringify(update));
+      console.warn('[bot] EVENT_01');
       return;
     }
 
-    console.log('[bot] update_type=' + update.update_type + ', user_id=' + userId);
+    console.log('[bot] EVENT_02');
 
     const isOwner = config.adminChatIds.some((id) => String(userId) === String(id));
     // Customers use ordinary community messages. Do not reply or create sessions.
@@ -260,7 +260,7 @@ async function handleUpdate(update) {
     if (update.update_type === 'message_callback') {
       const data = extractCallbackData(update);
       if (!data) {
-        console.warn('[bot] message_callback без callback_data, апдейт целиком:', JSON.stringify(update));
+        console.warn('[bot] EVENT_03');
         return;
       }
 
@@ -303,7 +303,7 @@ async function handleUpdate(update) {
         if (update.update_type === 'message_created') return sendGreeting(userId);
     }
   } catch (err) {
-    console.error('[bot] ошибка обработки административного события');
+    console.error('[bot] EVENT_04');
     throw err;
   }
 }

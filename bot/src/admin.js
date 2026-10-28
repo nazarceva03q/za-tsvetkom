@@ -32,6 +32,8 @@ const store = require('./store');
 const products = require('./products');
 const config = require('./config');
 const pricing = require('./price');
+const inbox = require('./inbox');
+const requestPanel = require('./requestPanel');
 
 const REGULAR_FIELD_ORDER = ['photos', 'name', 'composition', 'extra', 'price', 'stock'];
 
@@ -233,7 +235,7 @@ function extractPhotoAttachments(update) {
     if (url) urls.push(url);
   });
   if (photoAtts.length && !urls.length) {
-    console.warn('[admin] фото-вложение без распознанного URL, апдейт целиком:', JSON.stringify(update));
+    console.warn('[admin] EVENT_01');
   }
   return urls;
 }
@@ -256,7 +258,7 @@ async function handlePhotosStep(update, userId, session) {
       if (publicUrl) session.draft.photos.push(publicUrl);
       else await vkApi.sendMessage({ userId }, '⚠️ Не удалось сохранить фото, попробуйте прислать ещё раз.');
     } catch (e) {
-      console.error('[admin] ошибка загрузки фото:', e.message);
+      console.error('[admin] EVENT_02');
       await vkApi.sendMessage({ userId }, '⚠️ Не удалось загрузить фото, попробуйте ещё раз.');
     }
   }
@@ -313,7 +315,7 @@ async function handleBizPhotoStep(update, userId, session) {
     await store.setSession(userId, session);
     await vkApi.sendMessage({ userId }, 'Оформление на фото. '+pricing.prompt, [backRow()]);
   } catch (e) {
-    console.error('[admin] ошибка загрузки фото:', e.message);
+    console.error('[admin] EVENT_03');
     await vkApi.sendMessage({ userId }, '⚠️ Не удалось загрузить фото, попробуйте ещё раз.', bizPhotoStepRows(hasPhotos));
   }
 }
@@ -660,7 +662,7 @@ async function saveDraft(userId, session) {
     const product = await products.saveProduct(draft.category, draft.id, fields);
     await sendMenu(userId, '✅ Товар «' + product.name + '» опубликован на сайте (' + draft.category + ').');
   } catch (e) {
-    console.error('[admin] ошибка сохранения товара:', e.message);
+    console.error('[admin] EVENT_04');
     await vkApi.sendMessage({ userId }, '⚠️ Не удалось сохранить товар: ' + e.message, previewRows(isBusiness));
   }
 }
@@ -896,9 +898,7 @@ function formatLead(lead) {
 }
 
 async function sendLeads(userId, offset) {
-  const panel = new URL(config.ownerOrdersUrl);
-  if (panel.protocol !== 'https:' || panel.username || panel.password || panel.search || panel.hash) throw new Error('Invalid panel URL');
-  return vkApi.sendMessage({userId}, 'Все заявки сайта, контакты и пожелания находятся в закрытой панели Екатерины. Для просмотра войдите с личным логином и паролем.', [[vkApi.linkButton('Открыть заявки', panel.href)]]);
+  return config.requestsInVkEnabled === true ? inbox.list(userId,offset) : requestPanel.send(userId);
 }
 
 // Historical JSON leads are retained; no longer used as the website inbox.
@@ -919,6 +919,12 @@ async function sendLegacyLeads(userId, offset) {
 // ---------- диспетчер ----------
 
 async function handleCallback(userId, session, data) {
+  if (data.startsWith('inbox:')) {
+    if(config.requestsInVkEnabled===true)return inbox.handle(userId,data);
+    const number=data.split(':')[2];
+    await requestPanel.send(userId,/^ZT-[A-F0-9]{16}$/.test(number||'')?number:undefined);
+    return true;
+  }
   if (data === 'admin:menu') { await sendMenu(userId); return true; }
   if (data === 'admin:add') { await startAdd(userId); return true; }
   if (data === 'admin:edit') { await startFind(userId, 'edit'); return true; }

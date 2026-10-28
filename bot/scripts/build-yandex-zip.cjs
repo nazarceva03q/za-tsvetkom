@@ -6,9 +6,9 @@ const fs = require('node:fs');
 const path = require('node:path');
 const zlib = require('node:zlib');
 const root = path.resolve(__dirname, '..');
-const files = ['index.js', 'src/admin.js', 'src/bot.js', 'src/config.js',
+const files = ['index.js', 'maintenance.js', 'src/admin.js', 'src/bot.js', 'src/config.js',
   'src/vkApi.js', 'src/vkWebhook.js', 'src/notify.js', 'src/siteRelay.js', 'src/objectStorage.js', 'src/products.js',
-  'src/store.js', 'src/catalogClient.js', 'src/price.js'];
+  'src/store.js', 'src/catalogClient.js', 'src/price.js', 'src/inbox.js', 'src/requestPanel.js'];
 
 function crc32(bytes) {
   let crc = 0xffffffff;

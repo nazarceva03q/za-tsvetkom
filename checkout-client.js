@@ -34,7 +34,12 @@
      pending.result={ok:true,saved:true,orderNumber:data.orderNumber,replayed:data.replayed===true};write(pending);return clone(pending.result);
     }
     const definitive=[400,403,409,413,415,422,429].includes(response.status)&&data?.ok===false&&data.saved===false;
-    if(definitive&&!pending.uncertain&&data.code!=='IDEMPOTENCY_CONFLICT')storage.removeItem(pendingKey);
+    if(definitive&&data.code==='REQUEST_ERASED'){
+     // The server's erasure record is definitive even after a lost response.
+     // Do not auto-resend; a later explicit submit is a new request with a new key.
+     storage.removeItem(pendingKey);pending.uncertain=false;
+    }
+    else if(definitive&&!pending.uncertain&&data.code!=='IDEMPOTENCY_CONFLICT')storage.removeItem(pendingKey);
     else{pending.uncertain=true;write(pending)}
     const message=typeof data?.message==='string'?data.message.slice(0,500):'Сохранение не подтверждено. Повторите с теми же данными или позвоните.';
     throw new CheckoutError(typeof data?.code==='string'?data.code:'SERVER_ERROR',message,!definitive||pending.uncertain);

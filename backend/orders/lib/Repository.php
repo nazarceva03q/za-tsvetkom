@@ -9,10 +9,18 @@ function encode(array $value): string
 
 final class OrderRepository
 {
-    public function __construct(private readonly \PDO $db) {}
+    public function __construct(private readonly \PDO $db,private readonly bool $erasureSchema=false) {}
+
+    private function rejectErasedReplay(string $key,bool $lock=false): void {
+        if(!$this->erasureSchema)return;
+        $q=$this->db->prepare('SELECT id FROM zt_erasure_records WHERE replay_key_hash=?'.($lock?' FOR UPDATE':''));
+        $q->execute([hash('sha256',$key)]);
+        if($q->fetchColumn())throw new RequestError('REQUEST_ERASED',409,'Эта заявка уже удалена. Для нового обращения проверьте данные и отправьте форму заново.');
+    }
 
     private function find(string $key, string $hash): ?array
     {
+        $this->rejectErasedReplay($key);
         $query = $this->db->prepare('SELECT order_number, request_hash FROM zt_orders WHERE idempotency_key = ?');
         $query->execute([$key]);
         $row = $query->fetch(\PDO::FETCH_ASSOC);
@@ -47,6 +55,9 @@ final class OrderRepository
                 $request['phone'], $request['channel'], $request['date'] ?: null, $request['delivery'] ?: null,
                 $request['time'] ?: null, $request['address'], $request['comment'], $request['quantity'],
                 $request['budget'], $request['consentVersion'], $request['consentTextSha256'], 'new', $priced['totalKopecks'], $request['requestType']]);
+            // Current locking read catches a cleanup that committed while INSERT
+            // waited for the old order's unique key. A stale POST must not restore PII.
+            $this->rejectErasedReplay($key,true);
             $query = $this->db->prepare('INSERT INTO zt_order_rate_limits (bucket_key, attempts, expires_at)
                 VALUES (?, 1, DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 MINUTE))
                 ON DUPLICATE KEY UPDATE attempts = attempts + 1');

@@ -21,7 +21,7 @@ function webhookEnv() {
  return {webhook,updates,answers,bot};
 }
 function event(type='message_new') {
- return {type,group_id:123,secret:'secret',event_id:'evt1',object:type==='message_event'?{user_id:99,peer_id:99,event_id:'click1',payload:{command:'admin:hit'}}:{message:{id:7,from_id:99,peer_id:99,text:'Начать',attachments:[]}}};
+ return {type,group_id:123,secret:'secret',event_id:'evt1',object:type==='message_event'?{user_id:99,peer_id:99,event_id:'click1',payload:{command:'admin:hit',issuedAt:Math.floor(Date.now()/1000)}}:{message:{id:7,date:Math.floor(Date.now()/1000),from_id:99,peer_id:99,text:'Начать',attachments:[]}}};
 }
 test('VK confirmation, secret, group ID, unsupported events',async()=>{
  const {webhook,updates}=webhookEnv();
@@ -30,6 +30,13 @@ test('VK confirmation, secret, group ID, unsupported events',async()=>{
  assert.equal((await webhook.handle({...event(),group_id:124})).status,403);
  assert.equal((await webhook.handle(event('wall_post_new'))).body,'ok');
  assert.equal(updates.length,0);
+});
+test('legacy menu buttons remain usable without issuance or age requirements',async()=>{
+ const env=webhookEnv(),e=event('message_event');delete e.object.payload.issuedAt;
+ await env.webhook.handle(e);await env.webhook.handle(e);
+ assert.equal(env.updates.length,1);
+ const old=event('message_event');old.object.event_id='another-click';old.object.payload.issuedAt=1;
+ await env.webhook.handle(old);assert.equal(env.updates.length,2);
 });
 test('VK message normalization selects largest photo, ignores outgoing messages and conversations',()=>{
  const {webhook}=webhookEnv(),e=event();

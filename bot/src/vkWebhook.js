@@ -35,7 +35,7 @@ async function handle(data) {
   if (update && !config.adminChatIds.some(id => String(id) === String(update.user_id))) return {status:200,body:'ok'};
   if (update) {
     if (data.type === 'message_event') {
-      try { await vkApi.answerEvent(data.object); } catch (error) { console.warn('[vkWebhook] Callback acknowledgement failed:', error.message); }
+      try { await vkApi.answerEvent(data.object); } catch (error) { console.warn('[vkWebhook] EVENT_01'); }
     }
     const eventId = data.group_id + ':' + data.type + ':' + update.user_id + ':' + (data.type === 'message_event' ? (data.object.event_id || data.event_id) : data.object.message.id || data.object.message.conversation_message_id || data.event_id);
     if (await store.hasProcessedEvent(eventId)) return { status: 200, body: 'ok' };

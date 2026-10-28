@@ -13,7 +13,7 @@ async function callApi(method, params = {}, options = {}) {
 }
 
 function callbackButton(text, payload) {
-  return { action: { type: 'callback', label: [...text].slice(0, 40).join(''), payload: JSON.stringify({ command: payload }) }, color: 'secondary' };
+  return { action: { type: 'callback', label: [...text].slice(0, 40).join(''), payload: JSON.stringify({ command: payload, issuedAt: Math.floor(Date.now()/1000) }) }, color: 'secondary' };
 }
 function linkButton(text, link) { return { action: { type: 'open_link', label: text, link } }; }
 // VK inline keyboards support at most 6 rows and 10 buttons. Split large menus across messages.
@@ -36,7 +36,7 @@ async function sendMessage(target, text, rows, attachment) {
   while (chars.length) chunks.push(chars.splice(0, 3500).join(''));
   if (!chunks.length) chunks.push(' ');
   for (let i = 0; i < chunks.length; i++) {
-    const params = { peer_id, message: chunks[i], random_id: crypto.randomInt(1, 2147483647) };
+    const params = { peer_id, message: chunks[i], random_id: crypto.randomInt(1, 2147483647), dont_parse_links:1, disable_mentions:1 };
     if (i === chunks.length - 1) {
       if (pages.length) params.keyboard = JSON.stringify({ inline: true, buttons: pages[0] });
       if (attachment) params.attachment = attachment;
@@ -73,7 +73,7 @@ async function sendPhotoUrlMessage(target, text, rows, photoUrl, options = {}) {
     if (!photos?.[0]) throw new Error('VK did not save photo');
     const p = photos[0]; attachment = 'photo' + p.owner_id + '_' + p.id + (p.access_key ? '_' + p.access_key : '');
   } catch (error) {
-    console.warn('[vkApi] Не удалось прикрепить фото:', error.message);
+    console.warn('[vkApi] EVENT_01');
     return { ok: false };
   }
   return sendMessage(target, text, rows, attachment);

@@ -67,11 +67,15 @@ function run(string $privateDirectory): never
             \PDO::ATTR_PERSISTENT => false, \PDO::ATTR_TIMEOUT => 5,
         ]);
         $db->exec("SET time_zone = '+00:00'");
-        $repository = new OrderRepository($db);
+        $repository = new OrderRepository($db,($config['erasure']['schema_ready']??false)===true);
         $saved = $repository->replay($key, $hash);
         if ($saved !== null) respond(200, $saved);
         normalizeRequest($input);
-        $priced = requestItems($request); // No dependency on Yandex or catalog.json.
+        $priced = requestItems($request); // No dependency on Yandex.
+        if(is_file(__DIR__.'/BotInbox.php')) {
+            require_once __DIR__.'/BotInbox.php';
+            $priced = enrichRequestItems($request,$priced,$privateDirectory);
+        }
         $consent = file_get_contents($privateDirectory . '/consent.html');
         if ($consent === false || !str_contains($consent, 'data-consent-version="2026-10-requests-v2"')) throw new \RuntimeException('Consent snapshot mismatch');
         $request['consentTextSha256'] = hash_file('sha256', $privateDirectory . '/consent.html');
