@@ -4,15 +4,21 @@
  const stable=x=>Array.isArray(x)?x.map(stable):x&&typeof x==='object'?Object.fromEntries(Object.keys(x).sort().map(k=>[k,stable(x[k])])):x;
  class CheckoutError extends Error{constructor(code,message,uncertain=false){super(message);this.code=code;this.uncertain=uncertain}}
  function validResult(x){return x&&x.ok===true&&x.saved===true&&/^ZT-[A-F0-9]{16}$/.test(x.orderNumber)}
- function createClient({storage,fetch:request,crypto,timeoutMs=20000,locks=null,endpoint='/api/v1/orders.php'}){
+ function createClient({storage,fetch:request,crypto,timeoutMs=20000,locks=null,endpoint='/api/v1/orders.php',previousEndpoint=null}){
   const cloud=endpoint!=='/api/v1/orders.php';
   if(cloud&&!/^https:\/\/functions\.yandexcloud\.net\/[a-z0-9]+$/.test(endpoint))throw new CheckoutError('ENDPOINT','Адрес приёма заявок не настроен.');
   const pendingKey=cloud?'zt:checkout-cloud-v2:'+endpoint:'zt:checkout-pending-v1';
+  const previousKey=cloud&&previousEndpoint?'zt:checkout-cloud-v2:'+previousEndpoint:null;
   let active=null,activePayload=null;
   function read(){
-   const raw=storage.getItem(pendingKey);if(!raw)return null;
+   let raw=storage.getItem(pendingKey);
+   const migrate=!raw&&previousKey;
+   if(migrate)raw=storage.getItem(previousKey);
+   if(!raw)return null;
    let x;try{x=JSON.parse(raw)}catch{throw new CheckoutError('STORAGE','Не удалось прочитать состояние предыдущей заявки. Позвоните в магазин.')}
    if(!x||!(cloud?/^\d{13}\.[a-f0-9-]{36}$/:/^[a-f0-9]{64}$/).test(x.key)||!/^[a-f0-9]{64}$/.test(x.fingerprint))throw new CheckoutError('STORAGE','Некорректное состояние предыдущей заявки. Позвоните в магазин.');
+   // Preserve the original identity and uncertain outcome when correcting the configured URL.
+   if(migrate){storage.setItem(pendingKey,raw);storage.removeItem(previousKey)}
    return x;
   }
   function write(x){storage.setItem(pendingKey,JSON.stringify(x))}

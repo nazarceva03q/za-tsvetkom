@@ -3,7 +3,8 @@
  let client;
  function getClient(){
   if(!client)client=ZTCheckoutClient.createClient({storage:localStorage,fetch:window.fetch.bind(window),crypto:window.crypto,locks:navigator.locks||null,
-   endpoint:'https://functions.yandexcloud.net/d4e6me6uq7jcrdsqanvl'});
+   endpoint:'https://functions.yandexcloud.net/d4ekp56u5sa0n7s2pp8l',
+   previousEndpoint:'https://functions.yandexcloud.net/d4e6me6uq7jcrdsqanvl'});
   return client;
  }
  function showSaved(result,note=''){
