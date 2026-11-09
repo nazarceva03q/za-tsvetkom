@@ -1,5 +1,7 @@
 'use strict';
 (function(){
+ // Rollout paused by the owner. Preserve pending identities and carts for diagnosis.
+ const intakePaused=true;
  let client;
  function getClient(){
   if(!client)client=ZTCheckoutClient.createClient({storage:localStorage,fetch:window.fetch.bind(window),crypto:window.crypto,locks:navigator.locks||null,
@@ -38,6 +40,7 @@
  }
  async function submitForm(f,{order}){
   if(f.dataset.submitting==='true'||f.dataset.completed==='true')return;
+  if(intakePaused){formError(f,'Онлайн-приём заявок временно приостановлен. Позвоните в магазин, чтобы оформить заказ или уточнить ранее отправленную заявку.');return}
   const button=f.querySelector('button[type="submit"]');
   let editable=[];
   f.dataset.submitting='true';if(button){button.disabled=true;button.textContent='Сохраняем…'}
